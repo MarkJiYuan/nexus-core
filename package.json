@@ -2,6 +2,7 @@
   "author": "Echo",
   "dependencies": {
     "axios": "^1.5.1",
+    "bignumber.js": "^9.1.2",
     "mongodb": "^6.5.0"
   },
   "devDependencies": {
