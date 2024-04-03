@@ -3,6 +3,10 @@
     {
       "nodeId": 1,
       "type": "OrganizationNode"
+    },
+    {
+      "nodeId": 2,
+      "type": "OrganizationNode"
     }
   ]
 }

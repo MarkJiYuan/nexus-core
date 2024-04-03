@@ -8,7 +8,7 @@ const kafka = new Kafka({
 });
 
 const producer = kafka.producer({ createPartitioner: Partitioners.LegacyPartitioner });
-const nodeManager = new NodeManager(kafka, '../types/test'); // 假设NodeManager的构造函数接收Kafka实例
+const nodeManager = new NodeManager(kafka, '../types/test.json'); // 假设NodeManager的构造函数接收Kafka实例
 
 async function testNodeRegistration() {
   await producer.connect();
@@ -25,7 +25,7 @@ async function testNodeRegistration() {
     messages: [{ value: JSON.stringify(registrationMessage) }],
   });
 
-  console.log('注册信息发送完毕。请检查中心管理节点是否正确处理。');
+  console.log('注册信息发送完毕。');
 
   // 在实际的测试中，您可能需要在NodeManager中暴露一些方法或状态，以便在这里进行断言检查
   // 例如:

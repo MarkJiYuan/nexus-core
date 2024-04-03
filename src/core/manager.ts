@@ -16,10 +16,12 @@ export class NodeManager {
     private kafka: Kafka,
     private configPath: string,
   ) {
+    console.log("manager 创建成功");
     this.listenToHeartbeats();
     setInterval(() => {
       this.checkNodeStatus();
     }, 60000);
+    this.loadConfigAndCreateNodes();
   }
 
   private async listenToHeartbeats() {
@@ -28,7 +30,11 @@ export class NodeManager {
     await consumer.subscribe({ topic: "node-management", fromBeginning: true });
 
     await consumer.run({
-      eachMessage: async ({ message }) => {
+      eachMessage: async ({ topic, partition, message }) => {
+
+        const messageValue = message.value.toString();
+      // Log the message content
+      console.log(`Received message on topic ${topic} partition ${partition}: ${messageValue}`);
         const content = JSON.parse(message.value.toString());
         if (content.type === "heartbeat") {
           this.handleHeartbeat(content);
@@ -110,6 +116,7 @@ export class NodeManager {
     }
 
     // 建立连接
+    if(!config.connections) return;
     for (const connConfig of config.connections as ConnectionConfig[]) {
       const fromNode = this.nodes.get(connConfig.from);
       const toNode = this.nodes.get(connConfig.to);
