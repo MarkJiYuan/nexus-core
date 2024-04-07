@@ -1,12 +1,20 @@
 {
-  "nodes": [
+  "operations": [
     {
-      "nodeId": 1,
-      "type": "OrganizationNode"
+      "action": "connect",
+      "from": 1,
+      "to": 2
     },
     {
-      "nodeId": 2,
-      "type": "OrganizationNode"
+      "action": "connect",
+      "from": 3,
+      "to": 4
+    },
+    {
+      "action": "configure",
+      "nodeId": 1,
+      "config": {
+      }
     }
   ]
 }

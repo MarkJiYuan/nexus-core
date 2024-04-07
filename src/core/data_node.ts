@@ -1,16 +1,28 @@
-import BasicNode from './node';
-import { Kafka } from 'kafkajs';
+import BasicNode from "./node";
+import { Kafka } from "kafkajs";
 
 export default class DataNode extends BasicNode {
   constructor(nodeId: number, kafka: Kafka) {
     super(nodeId, kafka);
-  this.init().catch((err) => console.error("Initialization error:", err));
+    this.init().catch((err) => console.error("Initialization error:", err));
   }
 
   private async init(): Promise<void> {
     await this.producer.connect();
     await this.sendRegistrationInfo("DataNode");
     this.startHeartbeat("DataNode");
+    this.sendPeriodicMessages();
+  }
+
+  sendPeriodicMessages(): void {
+    setInterval(async () => {
+      const message = {
+        algorithmName: "sum",
+        data: [1, 2, 3, 4, 5],
+      };
+      await this.sendMessage(JSON.stringify(message));
+      console.log(`Sent message to ${this.sendTopic}: ${message.data}`);
+    }, 5000); // 每五秒执行一次
   }
 
   // 特定的数据处理逻辑

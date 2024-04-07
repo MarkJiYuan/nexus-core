@@ -1,5 +1,9 @@
 import { Kafka, Producer, Consumer } from 'kafkajs';
 
+const registrationTopic = "node-registration";
+const heartbeatTopic = "node-heartbeat";
+const managerTopic = "node-management";
+
 export interface NodeConfig {
   type: string;
   nodeId: number;
@@ -21,3 +25,5 @@ export interface Node {
   receiveMessage(messageHandler: (message: string) => Promise<void> | void): Promise<void>;
   disconnect(): Promise<void>;
 }
+
+export {registrationTopic, heartbeatTopic, managerTopic}

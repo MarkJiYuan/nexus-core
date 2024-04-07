@@ -1,54 +1,124 @@
-import fs from "fs";
-import path from "path";
-import { Kafka } from "kafkajs";
+import {
+  registrationTopic,
+  heartbeatTopic,
+  managerTopic,
+} from "../types/types";
+import { Kafka, Consumer, Producer } from "kafkajs";
 import BasicNode from "./node";
-import { NodeConfig, ConnectionConfig } from "src/types/types";
+import { NodeConfig } from "src/types/types";
 import ComputeNode from "./compute_node";
 import StorageNode from "./storage_node";
 import DataNode from "./data_node";
 import OrganizationNode from "./organize_node";
 
 export class NodeManager {
-  private nodes: Map<number, BasicNode> = new Map();
+  private kafka: Kafka;
+  private consumer: Consumer;
+  private producer: Producer;
+
+  private nodes: Map<number, any> = new Map();
   private lastHeartbeat: { [nodeId: number]: Date } = {}; //记录最后一次心跳的时间
 
-  constructor(
-    private kafka: Kafka,
-    private configPath: string,
-  ) {
-    console.log("manager 创建成功");
+  constructor(kafka: Kafka) {
+    this.kafka = kafka;
+    this.consumer = this.kafka.consumer({ groupId: "node-manager-group" });
+    this.producer = this.kafka.producer();
+    this.init().catch((err) => console.error("Initialization error:", err));
     this.listenToHeartbeats();
     setInterval(() => {
       this.checkNodeStatus();
     }, 60000);
-    this.loadConfigAndCreateNodes();
   }
 
-  private async listenToHeartbeats() {
-    const consumer = this.kafka.consumer({ groupId: "manager-group" });
-    await consumer.connect();
-    await consumer.subscribe({ topic: "node-management", fromBeginning: true });
+  private async init(): Promise<void> {
+    await this.producer.connect();
+    await this.consumer.connect();
+    await this.consumer.subscribe({ topic: managerTopic, fromBeginning: true });
+    await this.consumer.subscribe({
+      topic: registrationTopic,
+      fromBeginning: true,
+    });
 
-    await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
-
-        const messageValue = message.value.toString();
-      // Log the message content
-      console.log(`Received message on topic ${topic} partition ${partition}: ${messageValue}`);
-        const content = JSON.parse(message.value.toString());
-        if (content.type === "heartbeat") {
-          this.handleHeartbeat(content);
+    await this.consumer.run({
+      eachMessage: async ({ topic, message }) => {
+        const info = JSON.parse(message.value.toString());
+        if (topic === registrationTopic) {
+          // 处理节点注册信息
+          this.handleNodeRegistration(info);
+        } else if (topic === managerTopic) {
+          // 处理来自管理信息的消息
+          this.handleManagerMessage(info);
         }
       },
     });
   }
 
-  private handleHeartbeat(info: any) {
-    console.log(
-      `Heartbeat received from node ${info.nodeId} at ${info.timestamp}`,
-    );
-    this.lastHeartbeat[info.nodeId] = new Date(info.timestamp);
+  private handleManagerMessage(content: any): void {
+    if (Array.isArray(content.operations)) {
+      content.operations.forEach((operation: any) => {
+        switch (operation.action) {
+          case "connect":
+            // 连接
+            this.handleConnectAction(operation);
+            break;
+          case "configure":
+            // 配置
+            this.handleConfigureAction(operation);
+            break;
+          default:
+            console.log(`Unsupported operation: ${operation.action}`);
+        }
+      });
+    } else {
+      console.error("Invalid operations format");
+    }
   }
+
+  private async handleConnectAction(operation: any): Promise<void> {
+    const topicName = `from-node-${operation.from}-to-node-${operation.to}`;
+
+    // 告诉from节点成为该topic的生产者
+    await this.producer.send({
+      topic: `node-${operation.from}`,
+      messages: [
+        {
+          value: JSON.stringify({ action: "becomeProducer", topic: topicName }),
+        },
+      ],
+    });
+
+    // 告诉to节点成为该topic的消费者
+    await this.producer.send({
+      topic: `node-${operation.to}`,
+      messages: [
+        {
+          value: JSON.stringify({ action: "becomeConsumer", topic: topicName }),
+        },
+      ],
+    });
+
+    console.log(
+      `node-${operation.from} and node-${operation.to}`,
+    );
+  }
+
+  private handleConfigureAction(info: any): void {
+    console.log(
+      `Configuring node ${info.nodeId} with config: ${JSON.stringify(info.config)}`,
+    );
+  }
+
+  private handleNodeRegistration(info: {
+    nodeId: number;
+    type: string;
+    timestamp: string;
+  }): void {
+    console.log(`Node registered: ${info.nodeId}, type: ${info.type}`);
+    // 将节点信息存储在Map中
+    this.nodes.set(info.nodeId, info);
+  }
+
+  
 
   async createNode(nodeConfig: NodeConfig): Promise<BasicNode | null> {
     let node: BasicNode | null = null;
@@ -103,33 +173,52 @@ export class NodeManager {
   }
 
   // 依据配置文件创建节点并建立连接
-  async loadConfigAndCreateNodes(): Promise<void> {
-    const configFile = fs.readFileSync(
-      path.resolve(__dirname, this.configPath),
-      "utf8",
-    );
-    const config = JSON.parse(configFile);
+  // async loadConfigAndCreateNodes(): Promise<void> {
+  //   const configFile = fs.readFileSync(
+  //     path.resolve(__dirname, this.configPath),
+  //     "utf8",
+  //   );
+  //   const config = JSON.parse(configFile);
 
-    for (const nodeConfig of config.nodes as NodeConfig[]) {
-      const node = await this.createNode(nodeConfig);
-      this.nodes.set(nodeConfig.nodeId, node);
-    }
+  //   for (const nodeConfig of config.nodes as NodeConfig[]) {
+  //     const node = await this.createNode(nodeConfig);
+  //     this.nodes.set(nodeConfig.nodeId, node);
+  //   }
 
-    // 建立连接
-    if(!config.connections) return;
-    for (const connConfig of config.connections as ConnectionConfig[]) {
-      const fromNode = this.nodes.get(connConfig.from);
-      const toNode = this.nodes.get(connConfig.to);
+  //   // 建立连接
+  //   if(!config.connections) return;
+  //   for (const connConfig of config.connections as ConnectionConfig[]) {
+  //     const fromNode = this.nodes.get(connConfig.from);
+  //     const toNode = this.nodes.get(connConfig.to);
 
-      if (fromNode && toNode) {
-        const topicName = `from-node-${connConfig.from}-to-node-${connConfig.to}`;
-        await fromNode.setProducer(topicName);
-        await toNode.setConsumer(topicName);
-      }
-    }
+  //     if (fromNode && toNode) {
+  //       const topicName = `from-node-${connConfig.from}-to-node-${connConfig.to}`;
+  //       await fromNode.setProducer(topicName);
+  //       await toNode.setConsumer(topicName);
+  //     }
+  //   }
+  // }
+
+  private async listenToHeartbeats() {
+    const consumer = this.kafka.consumer({ groupId: "manager-group" });
+    await consumer.connect();
+    await consumer.subscribe({ topic: heartbeatTopic, fromBeginning: true });
+
+    await consumer.run({
+      eachMessage: async ({message }) => {
+        const messageValue = message.value.toString();
+        const content = JSON.parse(message.value.toString());
+        this.handleHeartbeat(content);
+      },
+    });
   }
 
-  
+  private handleHeartbeat(info: any) {
+    console.log(
+      `Heartbeat received from node ${info.nodeId} at ${info.timestamp}`,
+    );
+    this.lastHeartbeat[info.nodeId] = new Date(info.timestamp);
+  }
 
   // 定期检查节点的心跳，看是否有节点失联
   checkNodeStatus() {

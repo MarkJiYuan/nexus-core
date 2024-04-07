@@ -1,10 +1,13 @@
-import BasicNode from './node';
-import { Kafka } from 'kafkajs';
+import BasicNode from "./node";
+import { Kafka } from "kafkajs";
+import AlgorithmLibrary from "./algorithmLibrary";
 
 export default class ComputeNode extends BasicNode {
+  private algorithmLibrary = new AlgorithmLibrary();
+
   constructor(nodeId: number, kafka: Kafka) {
     super(nodeId, kafka);
-  this.init().catch((err) => console.error("Initialization error:", err));
+    this.init().catch((err) => console.error("Initialization error:", err));
   }
 
   private async init(): Promise<void> {
@@ -14,8 +17,15 @@ export default class ComputeNode extends BasicNode {
   }
 
   // 特定的计算逻辑
-  async handleCompute(message: string): Promise<void> {
-    console.log(`Computing message in ComputeNode ${this.nodeId}: ${message}`);
-    // 实现计算逻辑，如执行某些算法等
+  async handleCompute(): Promise<void> {
+    await this.consumer.run({
+      eachMessage: async ({ message }) => {
+        const { algorithmName, data } = JSON.parse(message.value.toString());
+        const result = this.algorithmLibrary.execute(algorithmName, data);
+        if (result !== null) {
+          this.sendMessage(result + "");
+        }
+      },
+    });
   }
 }
