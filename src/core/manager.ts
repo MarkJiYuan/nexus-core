@@ -5,25 +5,21 @@ import {
 } from "../types/types";
 import { Kafka, Consumer, Producer } from "kafkajs";
 import BasicNode from "./node";
-import { NodeConfig } from "src/types/types";
-import ComputeNode from "./compute_node";
-import StorageNode from "./storage_node";
-import DataNode from "./data_node";
-import OrganizationNode from "./organize_node";
 
 export class NodeManager {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
 
-  private nodes: Map<number, any> = new Map();
-  private lastHeartbeat: { [nodeId: number]: Date } = {}; //记录最后一次心跳的时间
+  private nodes: Map<string, any> = new Map();
+  private lastHeartbeat: { [nodeId: string]: Date } = {}; //记录最后一次心跳的时间
 
   constructor(kafka: Kafka) {
     this.kafka = kafka;
     this.consumer = this.kafka.consumer({ groupId: "node-manager-group" });
     this.producer = this.kafka.producer();
     this.init().catch((err) => console.error("Initialization error:", err));
+
     this.listenToHeartbeats();
     setInterval(() => {
       this.checkNodeStatus();
@@ -33,10 +29,13 @@ export class NodeManager {
   private async init(): Promise<void> {
     await this.producer.connect();
     await this.consumer.connect();
-    await this.consumer.subscribe({ topic: managerTopic, fromBeginning: true });
+    await this.consumer.subscribe({
+      topic: managerTopic,
+      fromBeginning: false,
+    });
     await this.consumer.subscribe({
       topic: registrationTopic,
-      fromBeginning: true,
+      fromBeginning: false,
     });
 
     await this.consumer.run({
@@ -64,6 +63,9 @@ export class NodeManager {
           case "configure":
             // 配置
             this.handleConfigureAction(operation);
+            break;
+          case "initiate":
+            this.handleInitiationAction(operation);
             break;
           default:
             console.log(`Unsupported operation: ${operation.action}`);
@@ -97,72 +99,50 @@ export class NodeManager {
       ],
     });
 
+    console.log(`node-${operation.from} and node-${operation.to}`);
+  }
+
+  private async handleInitiationAction(info: any): Promise<void> {
+    await this.producer.send({
+      topic: `node-${info.nodeId}`,
+      messages: [
+        {
+          value: JSON.stringify({ action: "initiate", type: info.type }),
+        },
+      ],
+    });
     console.log(
-      `node-${operation.from} and node-${operation.to}`,
+      `(from manager)sending initiate message to node ${info.nodeId} with type ${info.type}`,
     );
   }
 
   private handleConfigureAction(info: any): void {
+    //
     console.log(
       `Configuring node ${info.nodeId} with config: ${JSON.stringify(info.config)}`,
     );
   }
 
   private handleNodeRegistration(info: {
-    nodeId: number;
+    nodeId: string;
+    nodeType: string;
     type: string;
     timestamp: string;
   }): void {
-    console.log(`Node registered: ${info.nodeId}, type: ${info.type}`);
-    // 将节点信息存储在Map中
-    this.nodes.set(info.nodeId, info);
-  }
-
-  
-
-  async createNode(nodeConfig: NodeConfig): Promise<BasicNode | null> {
-    let node: BasicNode | null = null;
-    switch (nodeConfig.type) {
-      case "OrganizationNode":
-        node = new OrganizationNode(nodeConfig.nodeId, this.kafka);
-        break;
-      case "ComputeNode":
-        node = new ComputeNode(nodeConfig.nodeId, this.kafka);
-        break;
-      case "StorageNode":
-        node = new StorageNode(nodeConfig.nodeId, this.kafka);
-        break;
-      case "DataNode":
-        node = new DataNode(nodeConfig.nodeId, this.kafka);
-        break;
-      default:
-        console.error(`Unknown node type: ${nodeConfig.type}`);
-        return null;
-    }
-    // 预设每个节点都需要执行的初始化操作，例如连接到Kafka
-    await node.connect();
-    // 根据节点类型进行更多特定的初始化操作...
-
-    return node;
-  }
-
-  async addNode(nodeConfig: NodeConfig, connectTo?: number[]): Promise<void> {
-    const node = await this.createNode(nodeConfig);
-    this.nodes.set(nodeConfig.nodeId, node);
-
-    if (connectTo && connectTo.length > 0) {
-      for (const target of connectTo) {
-        const targetNode = this.nodes.get(target);
-        if (targetNode) {
-          const topicName = `from-node-${nodeConfig.nodeId}-to-node-${target}`;
-          await node.setProducer(topicName);
-          await targetNode.setConsumer(topicName);
-        }
-      }
+    if (info.nodeType) {
+      console.log(
+        `(from manager)Node(${info.nodeType}) ${info.nodeId} registered.`,
+      );
+      this.nodes.set(info.nodeId, info);
+      return;
+    } else {
+      console.log(
+        `(from manager)Node apply for registration: ${info.nodeId}, type: ${info.type}`,
+      );
     }
   }
 
-  async removeNode(nodeId: number): Promise<void> {
+  async removeNode(nodeId: string): Promise<void> {
     const node = this.nodes.get(nodeId);
     if (node) {
       await node.disconnect(); // 假设节点的disconnect方法会处理所有清理逻辑
@@ -205,7 +185,7 @@ export class NodeManager {
     await consumer.subscribe({ topic: heartbeatTopic, fromBeginning: true });
 
     await consumer.run({
-      eachMessage: async ({message }) => {
+      eachMessage: async ({ message }) => {
         const messageValue = message.value.toString();
         const content = JSON.parse(message.value.toString());
         this.handleHeartbeat(content);
@@ -215,7 +195,7 @@ export class NodeManager {
 
   private handleHeartbeat(info: any) {
     console.log(
-      `Heartbeat received from node ${info.nodeId} at ${info.timestamp}`,
+      `Heartbeat received from node(${info.nodeType}) ${info.nodeId} at ${info.timestamp}`,
     );
     this.lastHeartbeat[info.nodeId] = new Date(info.timestamp);
   }

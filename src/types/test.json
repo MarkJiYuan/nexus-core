@@ -1,6 +1,11 @@
 {
   "operations": [
     {
+      "action": "initiate",
+      "nodeId": "979fb12a-922b-4a37-a14a-7e6a68396853",
+      "type": "ComputeNode"
+    },
+    {
       "action": "connect",
       "from": 1,
       "to": 2

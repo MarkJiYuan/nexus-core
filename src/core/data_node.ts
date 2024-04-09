@@ -1,9 +1,10 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
+import { Register } from "./register";
 
 export default class DataNode extends BasicNode {
-  constructor(nodeId: number, kafka: Kafka) {
-    super(nodeId, kafka);
+  constructor(register: Register) {
+    super(register);
     this.init().catch((err) => console.error("Initialization error:", err));
   }
 

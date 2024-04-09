@@ -1,7 +1,10 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
-// import { registrationTopic,heartbeatTopic } from "src/types/types";
+import { registrationTopic,heartbeatTopic } from "../types/types";
+import { Register } from "./register";
+
 
 export class BasicNode {
+  protected nodeId: string;
   protected producer: Producer;
   protected consumer: Consumer;
   protected idConsumer: Consumer;
@@ -9,17 +12,12 @@ export class BasicNode {
   public receiveTopic: string = "";
 
   constructor(
-    public nodeId: number,
-    protected kafka: Kafka,
+    protected register: Register,
   ) {
     (async () => {
-      this.producer = this.kafka.producer();
-      this.idConsumer = this.kafka.consumer({ groupId: `group-${nodeId}` });
-      await this.idConsumer.connect();
-      await this.idConsumer.subscribe({
-        topic: `node-${this.nodeId}`,
-        fromBeginning: true,
-      });
+      this.nodeId = register.nodeId;
+      this.producer = register.producer;
+      this.idConsumer = register.consumer;
 
       await this.idConsumer.run({
         eachMessage: async ({ message }) => {
@@ -40,12 +38,13 @@ export class BasicNode {
   protected startHeartbeat(nodeType: string): void {
     setInterval(async () => {
       const message = {
-        nodeId: nodeType + this.nodeId,
+        nodeId: this.nodeId,
+        nodeType: nodeType,
         type: "heartbeat",
         timestamp: new Date().toISOString(),
       };
       await this.producer.send({
-        topic: "node-heartbeat",
+        topic: heartbeatTopic,
         messages: [{ value: JSON.stringify(message) }],
       });
     }, 30000); // 30s一次
@@ -53,12 +52,13 @@ export class BasicNode {
 
   protected async sendRegistrationInfo(nodeType: string): Promise<void> {
     const registrationInfo = {
-      nodeId: nodeType + this.nodeId,
+      nodeId: this.nodeId,
+      nodeType: nodeType,
       type: "registration",
       timestamp: new Date().toISOString(),
     };
     await this.producer.send({
-      topic: "node-registration",
+      topic: registrationTopic,
       messages: [{ value: JSON.stringify(registrationInfo) }],
     });
   }
@@ -73,8 +73,8 @@ export class BasicNode {
   }
 
   async setConsumer(receiveTopic: string): Promise<void> {
-    this.consumer = this.kafka.consumer({ groupId: `group-${this.nodeId}` });
-    console.log(`Subscribed to ${receiveTopic}`);
+    this.consumer = this.register.kafka.consumer({ groupId: `group-${this.nodeId}` });
+    console.log(`(from node)Subscribed to ${receiveTopic}`);
     
     this.receiveTopic = receiveTopic;
     await this.consumer.subscribe({
@@ -87,7 +87,7 @@ export class BasicNode {
         eachMessage: async ({ topic, partition, message }) => {
           const messageContent = message.value.toString();
           console.log(
-            `Message received from ${topic}[${partition}]: ${messageContent}`,
+            `(from node)Message received from ${topic}[${partition}]: ${messageContent}`,
           );
         },
       });
@@ -118,6 +118,7 @@ export class BasicNode {
     await this.producer.disconnect();
     await this.consumer.disconnect();
   }
+
 }
 
 export default BasicNode;

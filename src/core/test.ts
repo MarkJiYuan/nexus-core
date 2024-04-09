@@ -4,37 +4,41 @@ import DataNode from "./data_node";
 import OrganizationNode from "./organize_node";
 import ComputeNode from "./compute_node";
 import { managerTopic } from "../types/types";
+import { Register } from "./register";
 
 const kafka = new Kafka({
   clientId: "test-client",
   brokers: ["localhost:9092"], // 根据实际配置修改
 });
 
-const producer = kafka.producer({});
-const nodeManager = new NodeManager(kafka); // 假设NodeManager的构造函数接收Kafka实例
+export default kafka;
 
-async function testNodeRegistration() {
-  await producer.connect();
+// const producer = kafka.producer({});
+const nodeManager = new NodeManager(kafka);
+const register = new Register(kafka);
 
-  const dataNode = new DataNode(1, kafka);
-  const computeNode = new ComputeNode(2, kafka);
+// async function testNodeRegistration() {
+//   await producer.connect();
 
-  const managementMessage = {
-    operations: [
-      {
-        action: "connect",
-        from: 1,
-        to: 2,
-      },
-    ],
-  };
+//   const dataNode = new DataNode(kafka);
+//   const computeNode = new ComputeNode(kafka);
 
-  await producer.send({
-    topic: managerTopic,
-    messages: [{ value: JSON.stringify(managementMessage) }],
-  });
+//   const managementMessage = {
+//     operations: [
+//       {
+//         action: "connect",
+//         from: 1,
+//         to: 2,
+//       },
+//     ],
+//   };
 
-  await producer.disconnect();
-}
+//   await producer.send({
+//     topic: managerTopic,
+//     messages: [{ value: JSON.stringify(managementMessage) }],
+//   });
 
-testNodeRegistration().catch((err) => console.error("测试失败:", err));
+//   await producer.disconnect();
+// }
+
+// testNodeRegistration().catch((err) => console.error("测试失败:", err));

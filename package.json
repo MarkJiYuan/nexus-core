@@ -4,11 +4,13 @@
     "axios": "^1.5.1",
     "bignumber.js": "^9.1.2",
     "kafkajs": "^2.2.4",
-    "mongodb": "^6.5.0"
+    "mongodb": "^6.5.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.200",
     "@types/node": "^20.8.9",
+    "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
     "concurrently": "^8.2.2",

@@ -6,15 +6,15 @@ const managerTopic = "node-management";
 
 export interface NodeConfig {
   type: string;
-  nodeId: number;
+  nodeId: string;
 }
 export interface ConnectionConfig {
-  from: number;
-  to: number;
+  from: string;
+  to: string;
 }
 
 export interface Node {
-  nodeId: number;
+  nodeId: string;
   kafka: Kafka;
   producer: Producer;
   consumer: Consumer;
