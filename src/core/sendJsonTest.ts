@@ -17,7 +17,7 @@ async function runProducer() {
     operations: [
       {
         action: "initiate",
-        nodeId: "342d908d-1be0-467f-9213-33b2c36f5538",
+        nodeId: "25ce71ae-43c1-4a07-ab4e-032bd2ea6ff8",
         type: "ComputeNode",
       },
     ],

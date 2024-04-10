@@ -22,7 +22,7 @@ export default class DataNode extends BasicNode {
         data: [1, 2, 3, 4, 5],
       };
       await this.sendMessage(JSON.stringify(message));
-      console.log(`Sent message to ${this.sendTopic}: ${message.data}`);
+      console.log(`***Sent message to ${this.sendTopic}: ${message.data}`);
     }, 5000); // 每五秒执行一次
   }
 

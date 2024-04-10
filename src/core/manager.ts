@@ -4,12 +4,16 @@ import {
   managerTopic,
 } from "../types/types";
 import { Kafka, Consumer, Producer } from "kafkajs";
+import { NodeInfo, SystemState } from "../types/types";
+import fs from "fs";
+import path from "path";
 import BasicNode from "./node";
 
 export class NodeManager {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
+  private nodesFilePath = path.resolve(__dirname, "nodes.json");
 
   private nodes: Map<string, any> = new Map();
   private lastHeartbeat: { [nodeId: string]: Date } = {}; //记录最后一次心跳的时间
@@ -20,6 +24,7 @@ export class NodeManager {
     this.producer = this.kafka.producer();
     this.init().catch((err) => console.error("Initialization error:", err));
 
+    this.loadNodesInfo();
     this.listenToHeartbeats();
     setInterval(() => {
       this.checkNodeStatus();
@@ -31,14 +36,14 @@ export class NodeManager {
     await this.consumer.connect();
     await this.consumer.subscribe({
       topic: managerTopic,
-      fromBeginning: false,
+      fromBeginning: true,
     });
     await this.consumer.subscribe({
       topic: registrationTopic,
-      fromBeginning: false,
+      fromBeginning: true,
     });
 
-    await this.consumer.run({
+    this.consumer.run({
       eachMessage: async ({ topic, message }) => {
         const info = JSON.parse(message.value.toString());
         if (topic === registrationTopic) {
@@ -68,7 +73,7 @@ export class NodeManager {
             this.handleInitiationAction(operation);
             break;
           default:
-            console.log(`Unsupported operation: ${operation.action}`);
+            console.log(`***Unsupported operation: ${operation.action}`);
         }
       });
     } else {
@@ -99,7 +104,7 @@ export class NodeManager {
       ],
     });
 
-    console.log(`node-${operation.from} and node-${operation.to}`);
+    console.log(`***node-${operation.from} and node-${operation.to}`);
   }
 
   private async handleInitiationAction(info: any): Promise<void> {
@@ -112,14 +117,14 @@ export class NodeManager {
       ],
     });
     console.log(
-      `(from manager)sending initiate message to node ${info.nodeId} with type ${info.type}`,
+      `***(from manager)sending initiate message to node ${info.nodeId} with type ${info.type}`,
     );
   }
 
   private handleConfigureAction(info: any): void {
     //
     console.log(
-      `Configuring node ${info.nodeId} with config: ${JSON.stringify(info.config)}`,
+      `***Configuring node ${info.nodeId} with config: ${JSON.stringify(info.config)}`,
     );
   }
 
@@ -131,14 +136,43 @@ export class NodeManager {
   }): void {
     if (info.nodeType) {
       console.log(
-        `(from manager)Node(${info.nodeType}) ${info.nodeId} registered.`,
+        `***(from manager)Node(${info.nodeType}) ${info.nodeId} registered.`,
       );
+
+      //存储为json
+      const data = this.loadNodesData();
+      const existingNodeIndex = data.nodes.findIndex(
+        (node) => node.nodeId === info.nodeId,
+      );
+
+      if (existingNodeIndex !== -1) {
+        // 如果已存在具有相同nodeId的节点，不执行任何操作
+        console.log(
+          `***(from manager) Node(${info.nodeType}) ${info.nodeId} is already registered.`,
+        );
+        return;
+      }
+      data.nodes.push({ nodeId: info.nodeId, nodeType: info.nodeType });
+      this.saveNodesData(data);
+
       this.nodes.set(info.nodeId, info);
       return;
     } else {
       console.log(
-        `(from manager)Node apply for registration: ${info.nodeId}, type: ${info.type}`,
+        `***(from manager)Node apply for registration: ${info.nodeId}, type: ${info.type}`,
       );
+    }
+  }
+
+  loadNodesInfo() {
+    if (fs.existsSync(this.nodesFilePath)) {
+      const data = fs.readFileSync(this.nodesFilePath, 'utf8');
+      const nodes = JSON.parse(data).nodes;
+      console.log(nodes)
+      nodes.forEach(node => {
+        this.nodes.set(node.nodeId, node);
+      });
+      console.log('Loaded nodes info from file.');
     }
   }
 
@@ -152,32 +186,21 @@ export class NodeManager {
     }
   }
 
-  // 依据配置文件创建节点并建立连接
-  // async loadConfigAndCreateNodes(): Promise<void> {
-  //   const configFile = fs.readFileSync(
-  //     path.resolve(__dirname, this.configPath),
-  //     "utf8",
-  //   );
-  //   const config = JSON.parse(configFile);
+  private loadNodesData(): SystemState {
+    try {
+      const data = fs.readFileSync(this.nodesFilePath, "utf8");
+      return JSON.parse(data);
+    } catch (error) {
+      console.log(
+        "***Could not load nodes data, initializing with default structure.",
+      );
+      return { nodes: [], pipelines: [] }; // 默认结构
+    }
+  }
 
-  //   for (const nodeConfig of config.nodes as NodeConfig[]) {
-  //     const node = await this.createNode(nodeConfig);
-  //     this.nodes.set(nodeConfig.nodeId, node);
-  //   }
-
-  //   // 建立连接
-  //   if(!config.connections) return;
-  //   for (const connConfig of config.connections as ConnectionConfig[]) {
-  //     const fromNode = this.nodes.get(connConfig.from);
-  //     const toNode = this.nodes.get(connConfig.to);
-
-  //     if (fromNode && toNode) {
-  //       const topicName = `from-node-${connConfig.from}-to-node-${connConfig.to}`;
-  //       await fromNode.setProducer(topicName);
-  //       await toNode.setConsumer(topicName);
-  //     }
-  //   }
-  // }
+  private saveNodesData(data: SystemState): void {
+    fs.writeFileSync(this.nodesFilePath, JSON.stringify(data, null, 2), "utf8");
+  }
 
   private async listenToHeartbeats() {
     const consumer = this.kafka.consumer({ groupId: "manager-group" });
@@ -195,7 +218,7 @@ export class NodeManager {
 
   private handleHeartbeat(info: any) {
     console.log(
-      `Heartbeat received from node(${info.nodeType}) ${info.nodeId} at ${info.timestamp}`,
+      `***Heartbeat received from node(${info.nodeType}) ${info.nodeId} at ${info.timestamp}`,
     );
     this.lastHeartbeat[info.nodeId] = new Date(info.timestamp);
   }
@@ -207,7 +230,7 @@ export class NodeManager {
       const lastHeartbeatTime = this.lastHeartbeat[nodeId];
       const diff = now.getTime() - lastHeartbeatTime.getTime();
       if (diff > 60000) {
-        console.log(`Node ${nodeId} is not responding.`);
+        console.log(`***Node ${nodeId} is not responding.`);
       }
     }
   }

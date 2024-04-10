@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    {
+      "nodeId": "25ce71ae-43c1-4a07-ab4e-032bd2ea6ff8",
+      "nodeType": "ComputeNode"
+    },
+    {
+      "nodeId": "25ce71ae-43c1-4a07-ab4e-032bd2ea6ff8",
+      "nodeType": "ComputeNode"
+    }
+  ],
+  "pipelines": []
+}

@@ -24,7 +24,7 @@ export class BasicNode {
           const { action, topic: targetTopic } = JSON.parse(
             message.value.toString(),
           );
-          console.log(`Received message: ${action} ${targetTopic}`);
+          console.log(`***Received message: ${action} ${targetTopic}`);
           if (action === "becomeProducer") {
             await this.setProducer(targetTopic);
           } else if (action === "becomeConsumer") {
@@ -54,7 +54,6 @@ export class BasicNode {
     const registrationInfo = {
       nodeId: this.nodeId,
       nodeType: nodeType,
-      type: "registration",
       timestamp: new Date().toISOString(),
     };
     await this.producer.send({
@@ -74,7 +73,7 @@ export class BasicNode {
 
   async setConsumer(receiveTopic: string): Promise<void> {
     this.consumer = this.register.kafka.consumer({ groupId: `group-${this.nodeId}` });
-    console.log(`(from node)Subscribed to ${receiveTopic}`);
+    console.log(`***(from node)Subscribed to ${receiveTopic}`);
     
     this.receiveTopic = receiveTopic;
     await this.consumer.subscribe({
@@ -87,7 +86,7 @@ export class BasicNode {
         eachMessage: async ({ topic, partition, message }) => {
           const messageContent = message.value.toString();
           console.log(
-            `(from node)Message received from ${topic}[${partition}]: ${messageContent}`,
+            `***(from node)Message received from ${topic}[${partition}]: ${messageContent}`,
           );
         },
       });

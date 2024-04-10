@@ -5,16 +5,16 @@ import OrganizationNode from "./organize_node";
 import ComputeNode from "./compute_node";
 import { managerTopic } from "../types/types";
 import { Register } from "./register";
+import { time } from "console";
 
 const kafka = new Kafka({
   clientId: "test-client",
   brokers: ["localhost:9092"], // 根据实际配置修改
 });
 
-export default kafka;
-
 // const producer = kafka.producer({});
 const nodeManager = new NodeManager(kafka);
+
 const register = new Register(kafka);
 
 // async function testNodeRegistration() {

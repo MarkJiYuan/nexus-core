@@ -8,9 +8,24 @@ export interface NodeConfig {
   type: string;
   nodeId: string;
 }
-export interface ConnectionConfig {
-  from: string;
-  to: string;
+
+export interface NodeInfo {
+  nodeId: string;
+  nodeType: string;
+}
+
+export interface PipelineDetail {
+}
+
+export interface PipelineInfo {
+  fromNodeId: string;
+  toNodeId: string;
+  details: PipelineDetail;
+}
+
+export interface SystemState {
+  nodes: NodeInfo[];
+  pipelines: PipelineInfo[];
 }
 
 export interface Node {
