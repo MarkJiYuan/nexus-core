@@ -9,10 +9,30 @@ export default class DataNode extends BasicNode {
   }
 
   private async init(): Promise<void> {
-    await this.producer.connect();
-    await this.sendRegistrationInfo("DataNode");
-    this.startHeartbeat("DataNode");
-    this.sendPeriodicMessages();
+    await this.idConsumer.subscribe({
+      topic: this.listenTopic,
+      fromBeginning: true,
+    });
+
+    await this.idConsumer.run({
+      eachMessage: async ({ message }) => {
+        const { action, topic: targetTopic } = JSON.parse(
+          message.value.toString(),
+        );
+        console.log(`***Received message: ${action} ${targetTopic}`);
+        if (action === "becomeProducer") {
+          await this.setProducer(targetTopic);
+        } else if (action === "becomeConsumer") {
+          await this.setConsumer(targetTopic);
+        }
+
+          await this.producer.connect();
+          await this.sendRegistrationInfo("DataNode");
+          this.startHeartbeat("DataNode");
+          this.sendPeriodicMessages();
+
+      },
+    });
   }
 
   sendPeriodicMessages(): void {
@@ -22,7 +42,6 @@ export default class DataNode extends BasicNode {
         data: [1, 2, 3, 4, 5],
       };
       await this.sendMessage(JSON.stringify(message));
-      console.log(`***Sent message to ${this.sendTopic}: ${message.data}`);
     }, 5000); // 每五秒执行一次
   }
 

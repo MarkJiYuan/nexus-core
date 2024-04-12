@@ -1,7 +1,6 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
-import { registrationTopic,heartbeatTopic } from "../types/types";
+import { registrationTopic, heartbeatTopic } from "../types/types";
 import { Register } from "./register";
-
 
 export class BasicNode {
   protected nodeId: string;
@@ -11,38 +10,23 @@ export class BasicNode {
   protected kafka: Kafka;
   public listenTopic: string = "";
   public sendTopic: string = "";
-  public receiveTopic: string = "";
+  public receiveTopic: string[] = [];
 
-
-  constructor(
-    protected register: Register,
-  ) {
+  constructor(protected register: Register) {
     (async () => {
       this.nodeId = register.nodeId;
+      this.consumer = this.register.kafka.consumer({
+        groupId: `group-${this.nodeId}`,
+      });
+      
       this.listenTopic = `node-${this.nodeId}`;
       this.producer = register.producer;
       this.kafka = register.kafka;
-          this.consumer = this.register.kafka.consumer({ groupId: `group-${this.nodeId}` });
-      this.idConsumer = this.kafka.consumer({ groupId: `group-node-${this.nodeId}` });
-      await this.idConsumer.connect();
-      await this.idConsumer.subscribe({
-        topic: this.listenTopic,
-      fromBeginning: true,
-    });
 
-      await this.idConsumer.run({
-        eachMessage: async ({ message }) => {
-          const { action, topic: targetTopic } = JSON.parse(
-            message.value.toString(),
-          );
-          console.log(`***Received message: ${action} ${targetTopic}`);
-          if (action === "becomeProducer") {
-            await this.setProducer(targetTopic);
-          } else if (action === "becomeConsumer") {
-            await this.setConsumer(targetTopic);
-          }
-        },
+      this.idConsumer = this.kafka.consumer({
+        groupId: `group-node-${this.nodeId}`,
       });
+      await this.idConsumer.connect();
     })();
   }
 
@@ -73,25 +57,19 @@ export class BasicNode {
     });
   }
 
-  async connect(): Promise<void> {
-    await this.producer.connect();
-    await this.consumer.connect();
-  }
-
   async setProducer(sendTopic: string): Promise<void> {
     this.sendTopic = sendTopic;
   }
 
   async setConsumer(receiveTopic: string): Promise<void> {
 
-    console.log(`***(from node)Subscribed to ${receiveTopic}`);
-    
-    this.receiveTopic = receiveTopic;
+    await this.consumer.stop();
+    this.receiveTopic.push(receiveTopic);
+    console.log(this.receiveTopic);
     await this.consumer.subscribe({
-      topic: this.receiveTopic,
+      topics: this.receiveTopic,
       fromBeginning: true,
     });
-
   }
 
   async sendMessage(message: string): Promise<void> {
@@ -103,12 +81,6 @@ export class BasicNode {
       messages: [{ value: message }],
     });
   }
-
-  async disconnect(): Promise<void> {
-    await this.producer.disconnect();
-    await this.consumer.disconnect();
-  }
-
 }
 
 export default BasicNode;

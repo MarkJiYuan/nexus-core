@@ -12,8 +12,26 @@ export default class OrganizationNode extends BasicNode {
     await this.producer.connect();
     await this.sendRegistrationInfo("OrganizationNode");
     this.startHeartbeat("OrganizationNode");
-    await this.handleOrganization();
-    console.log(1)
+
+    await this.idConsumer.subscribe({
+      topic: this.listenTopic,
+      fromBeginning: true,
+    });
+
+    await this.idConsumer.run({
+      eachMessage: async ({ message }) => {
+        const { action, topic: targetTopic } = JSON.parse(
+          message.value.toString(),
+        );
+        console.log(`***Received message: ${action} ${targetTopic}`);
+        if (action === "becomeProducer") {
+          await this.setProducer(targetTopic);
+        } else if (action === "becomeConsumer") {
+          await this.setConsumer(targetTopic);
+          await this.handleOrganization();
+        }
+      },
+    });
   }
 
   // 特定的组织逻辑
