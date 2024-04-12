@@ -10,35 +10,16 @@ import { time } from "console";
 const kafka = new Kafka({
   clientId: "test-client",
   brokers: ["localhost:9092"], // 根据实际配置修改
+  logCreator: () => {
+    // 返回一个什么也不做的日志函数
+    return () => {
+      // 不执行任何操作
+    };
+  }
 });
 
 // const producer = kafka.producer({});
 const nodeManager = new NodeManager(kafka);
 
-const register = new Register(kafka);
-
-// async function testNodeRegistration() {
-//   await producer.connect();
-
-//   const dataNode = new DataNode(kafka);
-//   const computeNode = new ComputeNode(kafka);
-
-//   const managementMessage = {
-//     operations: [
-//       {
-//         action: "connect",
-//         from: 1,
-//         to: 2,
-//       },
-//     ],
-//   };
-
-//   await producer.send({
-//     topic: managerTopic,
-//     messages: [{ value: JSON.stringify(managementMessage) }],
-//   });
-
-//   await producer.disconnect();
-// }
-
-// testNodeRegistration().catch((err) => console.error("测试失败:", err));
+const register1 = new Register(kafka);
+const register2 = new Register(kafka);

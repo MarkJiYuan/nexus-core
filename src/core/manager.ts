@@ -8,6 +8,7 @@ import { NodeInfo, SystemState } from "../types/types";
 import fs from "fs";
 import path from "path";
 import BasicNode from "./node";
+import { timeStamp } from "console";
 
 export class NodeManager {
   private kafka: Kafka;
@@ -84,6 +85,17 @@ export class NodeManager {
   private async handleConnectAction(operation: any): Promise<void> {
     const topicName = `from-node-${operation.from}-to-node-${operation.to}`;
 
+    const data = this.loadNodesData();
+    data.pipelines.push({
+      fromNodeId: operation.from,
+      toNodeId: operation.to,
+      details: {
+        topic: topicName,
+      },
+    });
+
+    this.saveNodesData(data);
+
     // 告诉from节点成为该topic的生产者
     await this.producer.send({
       topic: `node-${operation.from}`,
@@ -109,7 +121,7 @@ export class NodeManager {
 
   private async handleInitiationAction(info: any): Promise<void> {
     await this.producer.send({
-      topic: `node-${info.nodeId}`,
+      topic: `register-${info.nodeId}`,
       messages: [
         {
           value: JSON.stringify({ action: "initiate", type: info.type }),

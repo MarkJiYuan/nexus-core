@@ -16,10 +16,10 @@ export class Register {
   constructor(kafka: Kafka) {
     this.nodeId = uuidv4();
     this.kafka = kafka;
-    this.listenTopic = `node-${this.nodeId}`;
+    this.listenTopic = `register-${this.nodeId}`;
     this.producer = kafka.producer();
 
-    this.consumer = kafka.consumer({ groupId: `group-${this.nodeId}` });
+    this.consumer = kafka.consumer({ groupId: `group-register-${this.nodeId}` });
     this.sendRegistrationInfo().catch((err) =>
       console.error("Registration error:", err),
     );
@@ -47,7 +47,7 @@ export class Register {
     await this.consumer.connect();
     await this.consumer.subscribe({
       topic: this.listenTopic,
-      fromBeginning: false,
+      fromBeginning: true,
     });
 
     await this.consumer.run({
@@ -55,11 +55,8 @@ export class Register {
         const { action, type } = JSON.parse(message.value.toString());
         // 如果action不是"initiate"，则直接返回
         if (action !== "initiate") {
-          console.log(`***Received non-initiate action: ${action}, ignoring.`);
           return;
         }
-
-        `(from register) Node-${this.nodeId} assigned to node ${type}.`;
 
         switch (type) {
           case "OrganizationNode":

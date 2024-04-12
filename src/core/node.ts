@@ -8,16 +8,27 @@ export class BasicNode {
   protected producer: Producer;
   protected consumer: Consumer;
   protected idConsumer: Consumer;
+  protected kafka: Kafka;
+  public listenTopic: string = "";
   public sendTopic: string = "";
   public receiveTopic: string = "";
+
 
   constructor(
     protected register: Register,
   ) {
     (async () => {
       this.nodeId = register.nodeId;
+      this.listenTopic = `node-${this.nodeId}`;
       this.producer = register.producer;
-      this.idConsumer = register.consumer;
+      this.kafka = register.kafka;
+          this.consumer = this.register.kafka.consumer({ groupId: `group-${this.nodeId}` });
+      this.idConsumer = this.kafka.consumer({ groupId: `group-node-${this.nodeId}` });
+      await this.idConsumer.connect();
+      await this.idConsumer.subscribe({
+        topic: this.listenTopic,
+      fromBeginning: true,
+    });
 
       await this.idConsumer.run({
         eachMessage: async ({ message }) => {
@@ -72,35 +83,15 @@ export class BasicNode {
   }
 
   async setConsumer(receiveTopic: string): Promise<void> {
-    this.consumer = this.register.kafka.consumer({ groupId: `group-${this.nodeId}` });
+
     console.log(`***(from node)Subscribed to ${receiveTopic}`);
     
     this.receiveTopic = receiveTopic;
     await this.consumer.subscribe({
       topic: this.receiveTopic,
-      fromBeginning: false,
+      fromBeginning: true,
     });
 
-    try {
-      await this.consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
-          const messageContent = message.value.toString();
-          console.log(
-            `***(from node)Message received from ${topic}[${partition}]: ${messageContent}`,
-          );
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    }
-    // await this.consumer.run({
-    //   eachMessage: async ({ topic, partition, message }) => {
-    //     const messageContent = message.value.toString();
-    //     console.log(
-    //       `Message received from ${topic}[${partition}]: ${messageContent}`,
-    //     );
-    //   },
-    // });
   }
 
   async sendMessage(message: string): Promise<void> {

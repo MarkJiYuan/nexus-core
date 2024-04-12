@@ -1,13 +1,186 @@
 {
   "nodes": [
     {
-      "nodeId": "25ce71ae-43c1-4a07-ab4e-032bd2ea6ff8",
-      "nodeType": "ComputeNode"
+      "nodeId": "88a9ae8c-419b-4d6a-bbf4-e1925af86913",
+      "nodeType": "DataNode"
     },
     {
-      "nodeId": "25ce71ae-43c1-4a07-ab4e-032bd2ea6ff8",
-      "nodeType": "ComputeNode"
+      "nodeId": "e7ea4375-d471-491d-86b6-b1fb5e24a82b",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "5f24a596-558d-4fb0-9151-39b11619c734",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "e2e9c97b-a215-4c42-a70d-53d2da9c7c46",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "99446a9f-79b4-4593-b9d6-300228e36f1f",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "3308603b-f181-49ba-b7ca-372915e06476",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "a14f455e-e8eb-4e3b-a7b3-f20256b960f7",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "f8f51359-e44a-437e-be35-9bc0afca6a62",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "a0e924bd-7d71-4b44-a213-7a4c6e27cabe",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "e06751c6-8f10-4c68-8c14-f32e0849adda",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "f93ea931-d335-433e-9a3b-f444d686b3b1",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "57e214a5-7ffb-4e03-866b-7b93281ff238",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "14d976d5-4702-4180-95d9-e0be104987fd",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "df1289b2-6a8b-4f55-b3e4-cb4e7ceb5214",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "9e585f9f-d033-41ac-8d23-c24993404dad",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "c3924cfe-bd02-4f15-a283-5973f99cb147",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "c46cadfa-ea16-492d-9b1e-e5952c3b6606",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "3a23666d-f4bc-4a3e-83b1-65ef8edebeb4",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "05049f97-05c0-4641-a039-17a36e503345",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "d2820051-f039-4077-a798-1c68fe3f97a6",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "671e8688-a717-44b0-8f7e-9634eb7bd16f",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "f16548aa-04fb-44c5-bbdb-76687cc9ff90",
+      "nodeType": "OrganizationNode"
+    },
+    {
+      "nodeId": "7bb068cd-84ad-4ee1-afb2-23df96245e4d",
+      "nodeType": "DataNode"
+    },
+    {
+      "nodeId": "c7ca7f72-c6fc-4b35-a636-d231650113a3",
+      "nodeType": "OrganizationNode"
     }
   ],
-  "pipelines": []
+  "pipelines": [
+    {
+      "fromNodeId": "88a9ae8c-419b-4d6a-bbf4-e1925af86913",
+      "toNodeId": "e7ea4375-d471-491d-86b6-b1fb5e24a82b",
+      "details": {
+        "topic": "from-node-88a9ae8c-419b-4d6a-bbf4-e1925af86913-to-node-e7ea4375-d471-491d-86b6-b1fb5e24a82b"
+      }
+    },
+    {
+      "fromNodeId": "5f24a596-558d-4fb0-9151-39b11619c734",
+      "toNodeId": "e2e9c97b-a215-4c42-a70d-53d2da9c7c46",
+      "details": {
+        "topic": "from-node-5f24a596-558d-4fb0-9151-39b11619c734-to-node-e2e9c97b-a215-4c42-a70d-53d2da9c7c46"
+      }
+    },
+    {
+      "fromNodeId": "99446a9f-79b4-4593-b9d6-300228e36f1f",
+      "toNodeId": "3308603b-f181-49ba-b7ca-372915e06476",
+      "details": {
+        "topic": "from-node-99446a9f-79b4-4593-b9d6-300228e36f1f-to-node-3308603b-f181-49ba-b7ca-372915e06476"
+      }
+    },
+    {
+      "fromNodeId": "a14f455e-e8eb-4e3b-a7b3-f20256b960f7",
+      "toNodeId": "f8f51359-e44a-437e-be35-9bc0afca6a62",
+      "details": {
+        "topic": "from-node-a14f455e-e8eb-4e3b-a7b3-f20256b960f7-to-node-f8f51359-e44a-437e-be35-9bc0afca6a62"
+      }
+    },
+    {
+      "fromNodeId": "a0e924bd-7d71-4b44-a213-7a4c6e27cabe",
+      "toNodeId": "e06751c6-8f10-4c68-8c14-f32e0849adda",
+      "details": {
+        "topic": "from-node-a0e924bd-7d71-4b44-a213-7a4c6e27cabe-to-node-e06751c6-8f10-4c68-8c14-f32e0849adda"
+      }
+    },
+    {
+      "fromNodeId": "f93ea931-d335-433e-9a3b-f444d686b3b1",
+      "toNodeId": "57e214a5-7ffb-4e03-866b-7b93281ff238",
+      "details": {
+        "topic": "from-node-f93ea931-d335-433e-9a3b-f444d686b3b1-to-node-57e214a5-7ffb-4e03-866b-7b93281ff238"
+      }
+    },
+    {
+      "fromNodeId": "14d976d5-4702-4180-95d9-e0be104987fd",
+      "toNodeId": "df1289b2-6a8b-4f55-b3e4-cb4e7ceb5214",
+      "details": {
+        "topic": "from-node-14d976d5-4702-4180-95d9-e0be104987fd-to-node-df1289b2-6a8b-4f55-b3e4-cb4e7ceb5214"
+      }
+    },
+    {
+      "fromNodeId": "9e585f9f-d033-41ac-8d23-c24993404dad",
+      "toNodeId": "c3924cfe-bd02-4f15-a283-5973f99cb147",
+      "details": {
+        "topic": "from-node-9e585f9f-d033-41ac-8d23-c24993404dad-to-node-c3924cfe-bd02-4f15-a283-5973f99cb147"
+      }
+    },
+    {
+      "fromNodeId": "c46cadfa-ea16-492d-9b1e-e5952c3b6606",
+      "toNodeId": "3a23666d-f4bc-4a3e-83b1-65ef8edebeb4",
+      "details": {
+        "topic": "from-node-c46cadfa-ea16-492d-9b1e-e5952c3b6606-to-node-3a23666d-f4bc-4a3e-83b1-65ef8edebeb4"
+      }
+    },
+    {
+      "fromNodeId": "05049f97-05c0-4641-a039-17a36e503345",
+      "toNodeId": "d2820051-f039-4077-a798-1c68fe3f97a6",
+      "details": {
+        "topic": "from-node-05049f97-05c0-4641-a039-17a36e503345-to-node-d2820051-f039-4077-a798-1c68fe3f97a6"
+      }
+    },
+    {
+      "fromNodeId": "671e8688-a717-44b0-8f7e-9634eb7bd16f",
+      "toNodeId": "f16548aa-04fb-44c5-bbdb-76687cc9ff90",
+      "details": {
+        "topic": "from-node-671e8688-a717-44b0-8f7e-9634eb7bd16f-to-node-f16548aa-04fb-44c5-bbdb-76687cc9ff90"
+      }
+    },
+    {
+      "fromNodeId": "7bb068cd-84ad-4ee1-afb2-23df96245e4d",
+      "toNodeId": "c7ca7f72-c6fc-4b35-a636-d231650113a3",
+      "details": {
+        "topic": "from-node-7bb068cd-84ad-4ee1-afb2-23df96245e4d-to-node-c7ca7f72-c6fc-4b35-a636-d231650113a3"
+      }
+    }
+  ]
 }

@@ -13,6 +13,7 @@ export default class ComputeNode extends BasicNode {
 
   private async init(): Promise<void> {
     await this.producer.connect();
+    await this.handleCompute();
     await this.sendRegistrationInfo("ComputeNode");
     this.startHeartbeat("ComputeNode");
   }
@@ -24,6 +25,7 @@ export default class ComputeNode extends BasicNode {
         const { algorithmName, data } = JSON.parse(message.value.toString());
         const result = this.algorithmLibrary.execute(algorithmName, data);
         if (result !== null) {
+          if (this.sendMessage === undefined) return;
           this.sendMessage(result + "");
         }
       },
