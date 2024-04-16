@@ -12,6 +12,7 @@ export interface NodeConfig {
 export interface NodeInfo {
   nodeId: string;
   nodeType: string;
+  nodeSetting?: any; // Node
 }
 
 export interface PipelineDetail {
@@ -27,6 +28,20 @@ export interface SystemState {
   nodes: NodeInfo[];
   pipelines: PipelineInfo[];
 }
+
+export interface StorageNodeConfig {
+  storageType: 'file' | 'database';
+  fileConfig?: {
+    path: string;
+  };
+  databaseConfig?: {
+    type: string;
+    connectionString: string;
+    databaseName: string;
+    tableName: string;
+  };
+}
+
 
 export interface Node {
   nodeId: string;
