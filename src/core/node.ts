@@ -1,6 +1,8 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
 import { registrationTopic, heartbeatTopic } from "../types/types";
 import { Register } from "./register";
+import Ajv from "ajv";
+const ajv = new Ajv();
 
 export class BasicNode {
   protected nodeId: string;
@@ -8,9 +10,11 @@ export class BasicNode {
   protected consumer: Consumer;
   protected idConsumer: Consumer;
   protected kafka: Kafka;
+  protected messageCount: number;
+  protected startTime: number;
   public listenTopic: string = "";
-  public sendTopic: string = "";
-  public receiveTopic: string[] = [];
+  public sendTopic: string = ""; //管道的生产者
+  public receiveTopic: string[] = []; //管道的消费者
 
   constructor(protected register: Register) {
     (async () => {
@@ -18,10 +22,12 @@ export class BasicNode {
       this.consumer = this.register.kafka.consumer({
         groupId: `group-${this.nodeId}`,
       });
-      
-      this.listenTopic = `node-${this.nodeId}`;
+
+      this.listenTopic = `node ${this.nodeId}`;
       this.producer = register.producer;
       this.kafka = register.kafka;
+      this.messageCount = 0;
+      this.startTime = Date.now();
 
       this.idConsumer = this.kafka.consumer({
         groupId: `group-node-${this.nodeId}`,
@@ -42,7 +48,7 @@ export class BasicNode {
         topic: heartbeatTopic,
         messages: [{ value: JSON.stringify(message) }],
       });
-    }, 30000); // 30s一次
+    }, 30000);
   }
 
   protected async sendRegistrationInfo(nodeType: string): Promise<void> {
@@ -62,7 +68,6 @@ export class BasicNode {
   }
 
   async setConsumer(receiveTopic: string): Promise<void> {
-
     await this.consumer.stop();
     this.receiveTopic.push(receiveTopic);
     console.log(this.receiveTopic);
@@ -76,10 +81,67 @@ export class BasicNode {
     if (!this.sendTopic) {
       return;
     }
+
+    //检验数据合理性
+    try {
+    const messageObj = JSON.parse(message);
+    if (!this.validateData(messageObj)) {
+      console.error('Data validation failed, message not sent.');
+      return;
+    }
     await this.producer.send({
       topic: this.sendTopic,
       messages: [{ value: message }],
     });
+  } catch (error) {
+    console.error('Error in sending message:', error);
+  }
+
+    await this.producer.send({
+      topic: this.sendTopic,
+      messages: [{ value: message }],
+    });
+
+    //监测流速
+    this.messageCount++;
+    this.monitorRate();
+  }
+
+  //监测每秒发送消息数
+  monitorRate() {
+    const currentTime = Date.now();
+    const elapsedSeconds = (currentTime - this.startTime) / 1000;
+
+    if (elapsedSeconds >= 60) {
+      console.log(
+        `Messages per minute: ${this.messageCount / (elapsedSeconds / 60)}`,
+      );
+
+      this.messageCount = 0;
+      this.startTime = Date.now();
+    }
+  }
+
+  //监测消息对象是否符合规范
+  validateData(message) {
+    const schema = {
+      type: "object",
+      properties: {
+        name: { type: "string", minLength: 1 },
+        age: { type: "number", minimum: 0 },
+        email: { type: "string", format: "email" },
+      },
+      required: ["name", "age", "email"],
+      additionalProperties: false,
+    };
+
+    const validate = ajv.compile(schema);
+    const valid = validate(message);
+    if (!valid) {
+      console.error(validate.errors);
+      return false;
+    }
+    return true;
   }
 }
 

@@ -16,7 +16,7 @@ export class Register {
   constructor(kafka: Kafka) {
     this.nodeId = uuidv4();
     this.kafka = kafka;
-    this.listenTopic = `register-${this.nodeId}`;
+    this.listenTopic = `register ${this.nodeId}`;
     this.producer = kafka.producer();
 
     this.consumer = kafka.consumer({ groupId: `group-register-${this.nodeId}` });
@@ -52,7 +52,7 @@ export class Register {
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const { action, type } = JSON.parse(message.value.toString());
+        const { action, type, nodeSetting } = JSON.parse(message.value.toString());
         // 如果action不是"initiate"，则直接返回
         if (action !== "initiate") {
           return;
@@ -63,7 +63,7 @@ export class Register {
             new OrganizationNode(this);
             break;
           case "DataNode":
-            new DataNode(this);
+            new DataNode(this, nodeSetting);
             break;
           case "ComputeNode":
             new ComputeNode(this);

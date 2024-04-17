@@ -1,8 +1,26 @@
-import { Kafka, Producer, Consumer } from 'kafkajs';
+import { Kafka, Producer, Consumer } from "kafkajs";
 
 const registrationTopic = "node-registration";
 const heartbeatTopic = "node-heartbeat";
 const managerTopic = "node-management";
+
+export enum NodeStatus {
+  Starting = "starting",
+  Stopping = "stopping",
+  Working = "working",
+  Idle = "idle",
+  Error = "error",
+}
+
+export enum sendingMode {
+  Polling = "polling",
+  EventDriven = "eventDriven"
+}
+
+export enum organizeMode {
+  Periodic = "periodic",
+  EventDriven = "eventdriven"
+}
 
 export interface NodeConfig {
   type: string;
@@ -12,11 +30,11 @@ export interface NodeConfig {
 export interface NodeInfo {
   nodeId: string;
   nodeType: string;
+  status: NodeStatus;
   nodeSetting?: any; // Node
 }
 
-export interface PipelineDetail {
-}
+export interface PipelineDetail {}
 
 export interface PipelineInfo {
   fromNodeId: string;
@@ -30,7 +48,7 @@ export interface SystemState {
 }
 
 export interface StorageNodeConfig {
-  storageType: 'file' | 'database';
+  storageType: "file" | "database";
   fileConfig?: {
     path: string;
   };
@@ -42,7 +60,6 @@ export interface StorageNodeConfig {
   };
 }
 
-
 export interface Node {
   nodeId: string;
   kafka: Kafka;
@@ -52,8 +69,10 @@ export interface Node {
   receiveTopic: string;
   connect(): Promise<void>;
   sendMessage(message: string): Promise<void>;
-  receiveMessage(messageHandler: (message: string) => Promise<void> | void): Promise<void>;
+  receiveMessage(
+    messageHandler: (message: string) => Promise<void> | void,
+  ): Promise<void>;
   disconnect(): Promise<void>;
 }
 
-export {registrationTopic, heartbeatTopic, managerTopic}
+export { registrationTopic, heartbeatTopic, managerTopic };

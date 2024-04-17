@@ -1,8 +1,12 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
+import { organizeMode } from "src/types/types";
 
 export default class OrganizationNode extends BasicNode {
+  private sendTopics: Set<string> = new Set();
+  private receiveTopics: Set<string> = new Set();
+
   constructor(register: Register) {
     super(register);
     this.init().catch((err) => console.error("Initialization error:", err));
@@ -25,13 +29,28 @@ export default class OrganizationNode extends BasicNode {
         );
         console.log(`***Received message: ${action} ${targetTopic}`);
         if (action === "becomeProducer") {
-          await this.setProducer(targetTopic);
+          await this.addSendTopic(targetTopic);
         } else if (action === "becomeConsumer") {
-          await this.setConsumer(targetTopic);
+          await this.addReceiveTopic(targetTopic);
           await this.handleOrganization();
         }
       },
     });
+  }
+
+  async addSendTopic(topic: string): Promise<void> {
+    if (!this.sendTopics.has(topic)) {
+      this.sendTopics.add(topic);
+      console.log(`Added send topic: ${topic}`);
+    }
+  }
+
+  async addReceiveTopic(topic: string): Promise<void> {
+    if (!this.receiveTopics.has(topic)) {
+      this.receiveTopics.add(topic);
+      this.consumer.stop();
+      await this.consumer.subscribe({ topic, fromBeginning: true });
+    }
   }
 
   // 特定的组织逻辑

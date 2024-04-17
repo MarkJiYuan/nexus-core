@@ -4,7 +4,7 @@ import {
   managerTopic,
 } from "../types/types";
 import { Kafka, Consumer, Producer } from "kafkajs";
-import { NodeInfo, SystemState } from "../types/types";
+import { NodeInfo, SystemState, NodeStatus } from "../types/types";
 import fs from "fs";
 import path from "path";
 import BasicNode from "./node";
@@ -14,7 +14,7 @@ export class NodeManager {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
-  private nodesFilePath = path.resolve(__dirname, "nodes.json");
+  private nodesFilePath = path.resolve(__dirname, "../test/nodes.json");
 
   private nodes: Map<string, any> = new Map();
   private lastHeartbeat: { [nodeId: string]: Date } = {}; //记录最后一次心跳的时间
@@ -44,6 +44,7 @@ export class NodeManager {
       fromBeginning: true,
     });
 
+    // 监听来自注册或管理信息的消息
     this.consumer.run({
       eachMessage: async ({ topic, message }) => {
         const info = JSON.parse(message.value.toString());
@@ -58,19 +59,21 @@ export class NodeManager {
     });
   }
 
+  // 处理来自管理信息的消息
   private handleManagerMessage(content: any): void {
     if (Array.isArray(content.operations)) {
       content.operations.forEach((operation: any) => {
         switch (operation.action) {
           case "connect":
-            // 连接
+            // 节点间连接  即建立管道
             this.handleConnectAction(operation);
             break;
           case "configure":
-            // 配置
+            // 节点配置
             this.handleConfigureAction(operation);
             break;
           case "initiate":
+            // 初始化
             this.handleInitiationAction(operation);
             break;
           default:
@@ -82,9 +85,9 @@ export class NodeManager {
     }
   }
 
+  //处理节点间连接
   private async handleConnectAction(operation: any): Promise<void> {
-    const topicName = `from-node-${operation.from}-to-node-${operation.to}`;
-
+    const topicName = `from ${operation.from} to ${operation.to}`;
     const data = this.loadNodesData();
     data.pipelines.push({
       fromNodeId: operation.from,
@@ -98,7 +101,7 @@ export class NodeManager {
 
     // 告诉from节点成为该topic的生产者
     await this.producer.send({
-      topic: `node-${operation.from}`,
+      topic: `node ${operation.from}`,
       messages: [
         {
           value: JSON.stringify({ action: "becomeProducer", topic: topicName }),
@@ -108,7 +111,7 @@ export class NodeManager {
 
     // 告诉to节点成为该topic的消费者
     await this.producer.send({
-      topic: `node-${operation.to}`,
+      topic: `node ${operation.to}`,
       messages: [
         {
           value: JSON.stringify({ action: "becomeConsumer", topic: topicName }),
@@ -116,23 +119,28 @@ export class NodeManager {
       ],
     });
 
-    console.log(`***node-${operation.from} and node-${operation.to}`);
-  }
-
-  private async handleInitiationAction(info: any): Promise<void> {
-    await this.producer.send({
-      topic: `register-${info.nodeId}`,
-      messages: [
-        {
-          value: JSON.stringify({ action: "initiate", type: info.type }),
-        },
-      ],
-    });
     console.log(
-      `***(from manager)sending initiate message to node ${info.nodeId} with type ${info.type}`,
+      `***Establishing pipes between ${operation.from} and node ${operation.to}`,
     );
   }
 
+  //处理初始化
+  private async handleInitiationAction(info: any): Promise<void> {
+    await this.producer.send({
+      topic: `register ${info.nodeId}`,
+      messages: [
+        {
+          value: JSON.stringify({ info }),
+        },
+      ],
+    });
+    this.updateNodeStatus(info.nodeId, NodeStatus.Starting);
+    console.log(
+      `***(from manager)sending initiate message to Register ${info.nodeId} with type ${info.type}`,
+    );
+  }
+
+  //处理节点配置
   private handleConfigureAction(info: any): void {
     //
     console.log(
@@ -140,6 +148,7 @@ export class NodeManager {
     );
   }
 
+  //处理来register的信息或者节点注册信息
   private handleNodeRegistration(info: {
     nodeId: string;
     nodeType: string;
@@ -153,6 +162,14 @@ export class NodeManager {
 
       //存储为json
       const data = this.loadNodesData();
+      const node = data.nodes.find((n) => n.nodeId === info.nodeId);
+      node.status = NodeStatus.Idle;
+      this.saveNodesData(data);
+
+      this.nodes.set(info.nodeId, info);
+    } else {
+      //存储为json
+      const data = this.loadNodesData();
       const existingNodeIndex = data.nodes.findIndex(
         (node) => node.nodeId === info.nodeId,
       );
@@ -164,27 +181,15 @@ export class NodeManager {
         );
         return;
       }
-      data.nodes.push({ nodeId: info.nodeId, nodeType: info.nodeType });
-      this.saveNodesData(data);
-
-      this.nodes.set(info.nodeId, info);
-      return;
-    } else {
-      console.log(
-        `***(from manager)Node apply for registration: ${info.nodeId}, type: ${info.type}`,
-      );
-    }
-  }
-
-  loadNodesInfo() {
-    if (fs.existsSync(this.nodesFilePath)) {
-      const data = fs.readFileSync(this.nodesFilePath, 'utf8');
-      const nodes = JSON.parse(data).nodes;
-      console.log(nodes)
-      nodes.forEach(node => {
-        this.nodes.set(node.nodeId, node);
+      data.nodes.push({
+        nodeId: info.nodeId,
+        nodeType: "unknown",
+        status: NodeStatus.Starting,
       });
-      console.log('Loaded nodes info from file.');
+      this.saveNodesData(data);
+      console.log(
+        `***(from manager)Register apply for registration: ${info.nodeId}, type: ${info.type}`,
+      );
     }
   }
 
@@ -195,6 +200,28 @@ export class NodeManager {
       this.nodes.delete(nodeId);
 
       // 可选：如果节点间有特定的连接关系需要处理，这里应该添加逻辑来解除这些连接
+    }
+  }
+
+  loadNodesInfo() {
+    if (fs.existsSync(this.nodesFilePath)) {
+      const data = fs.readFileSync(this.nodesFilePath, "utf8");
+      const nodes = JSON.parse(data).nodes;
+      console.log(nodes);
+      nodes.forEach((node) => {
+        this.nodes.set(node.nodeId, node);
+      });
+      console.log("Loaded nodes info from file.");
+    }
+  }
+
+  private updateNodeStatus(nodeId: string, status: NodeStatus): void {
+    const data = this.loadNodesData();
+    const node = data.nodes.find((n) => n.nodeId === nodeId);
+    if (node) {
+      node.status = status;
+      this.saveNodesData(data);
+      console.log(`Status of node ${nodeId} updated to ${status}.`);
     }
   }
 
@@ -242,6 +269,8 @@ export class NodeManager {
       const lastHeartbeatTime = this.lastHeartbeat[nodeId];
       const diff = now.getTime() - lastHeartbeatTime.getTime();
       if (diff > 60000) {
+        // 如果超过60秒没有收到心跳，认为节点失联
+        this.updateNodeStatus(nodeId, NodeStatus.Error);
         console.log(`***Node ${nodeId} is not responding.`);
       }
     }

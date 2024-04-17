@@ -1,11 +1,23 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
+import { sendingMode } from "src/types/types";
 
 export default class DataNode extends BasicNode {
-  constructor(register: Register) {
+  constructor(
+    register: Register,
+    nodeSetting: { sendingMode: String; pollingInterval?: number },
+  ) {
     super(register);
+
     this.init().catch((err) => console.error("Initialization error:", err));
+    if (nodeSetting.sendingMode === sendingMode.Polling) {
+      //轮询式
+      this.startPolling(nodeSetting.pollingInterval);
+    } else if (nodeSetting.sendingMode === sendingMode.EventDriven) {
+      //事件驱动式
+      this.eventDriven();
+    }
   }
 
   private async init(): Promise<void> {
@@ -26,13 +38,35 @@ export default class DataNode extends BasicNode {
           await this.setConsumer(targetTopic);
         }
 
-          await this.producer.connect();
-          await this.sendRegistrationInfo("DataNode");
-          this.startHeartbeat("DataNode");
-          this.sendPeriodicMessages();
-
+        await this.producer.connect();
+        await this.sendRegistrationInfo("DataNode");
+        this.startHeartbeat("DataNode");
+        this.sendPeriodicMessages();
       },
     });
+  }
+
+  private fetchData(): any {
+    // 模拟传感器数据
+    return {
+      algorithmName: "sum",
+      data: [1, 2, 3, 4, 5],
+    };
+  }
+
+  private async eventDriven(): Promise<void> {
+    await this.consumer.run({
+      eachMessage: async ({ message }) => {
+        await this.sendMessage(message.value.toString());
+      },
+    });
+  }
+
+  startPolling(interval: number): void {
+    setInterval(async () => {
+      const sensorData = this.fetchData();
+      await this.sendMessage(JSON.stringify(sensorData));
+    }, interval);
   }
 
   sendPeriodicMessages(): void {
@@ -42,7 +76,7 @@ export default class DataNode extends BasicNode {
         data: [1, 2, 3, 4, 5],
       };
       await this.sendMessage(JSON.stringify(message));
-    }, 5000); // 每五秒执行一次
+    }, 5000);
   }
 
   // 特定的数据处理逻辑

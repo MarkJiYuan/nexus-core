@@ -3,9 +3,8 @@ import { Kafka } from "kafkajs";
 import { timeout } from "src/utils/time";
 
 function delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 
 async function runProducer() {
   const kafka = new Kafka({
@@ -24,6 +23,10 @@ async function runProducer() {
         action: "initiate",
         nodeId: "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
         type: "DataNode",
+        nodeSetting: {
+          sendingMode: "polling",
+          pollingInterval: 1000,
+        },
       },
       {
         action: "initiate",
@@ -45,7 +48,7 @@ async function runProducer() {
         from: "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
         to: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
         details: [],
-       },
+      },
       {
         action: "connect",
         from: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
