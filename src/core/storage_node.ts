@@ -2,17 +2,22 @@ import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
 import fs from "fs";
+import { NodeType } from "../types/types";
+import { StorageMode, StorageSettings } from "../types/types";
 
 export default class StorageNode extends BasicNode {
-  constructor(register: Register) {
+  private storageSettings: StorageSettings
+
+  constructor(register: Register, nodeSetting: StorageSettings) {
     super(register);
+    this.storageSettings = nodeSetting;
     this.init().catch((err) => console.error("Initialization error:", err));
   }
 
   private async init(): Promise<void> {
     await this.producer.connect();
-    await this.sendRegistrationInfo("StorageNode");
-    this.startHeartbeat("StorageNode");
+    await this.sendRegistrationInfo(NodeType.StorageNode);
+    this.startHeartbeat(NodeType.StorageNode);
 
     await this.idConsumer.subscribe({
       topic: this.listenTopic,
@@ -35,22 +40,32 @@ export default class StorageNode extends BasicNode {
     });
   }
 
-  // 特定的存储逻辑
   async handleStorage(): Promise<void> {
     await this.consumer.run({
-      eachMessage: async ({message }) => {
+      eachMessage: async ({ message }) => {
         const messageContent = message.value.toString();
-        // 文件路径，你可以根据需要修改它
-        const filePath = "./storageNodeMessages.txt";
-
-        // 将消息追加到文件中。如果文件不存在，将会创建该文件
-        fs.appendFile(filePath, messageContent + "\n", (err) => {
-          if (err) {
-            console.error("Error writing message to file:", err);
-          } else {
-            console.log(`Message stored: ${messageContent}`);
-          }
-        });
+        switch (this.storageSettings.storageType) {
+          case StorageMode.File:
+            const filePath = this.storageSettings.filePath || "./defaultStorage.txt";
+            fs.appendFile(filePath, messageContent + "\n", (err) => {
+              if (err) {
+                console.error("Error writing message to file:", err);
+              } else {
+                console.log(`Message stored to file: ${messageContent}`);
+              }
+            });
+            break;
+          case StorageMode.Database:
+            // const pool = new Pool(this.storageSettings.dbConfig);
+            // pool.query("INSERT INTO messages(content) VALUES($1)", [messageContent], (err: any) => {
+            //   if (err) {
+            //     console.error("Error storing message to database:", err);
+            //   } else {
+            //     console.log(`Message stored to database: ${messageContent}`);
+            //   }
+            // });
+            break;
+        }
       },
     });
   }

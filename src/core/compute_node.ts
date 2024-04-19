@@ -2,20 +2,23 @@ import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import AlgorithmLibrary from "./algorithmLibrary";
 import { Register } from "./register";
+import { NodeType } from "../types/types";
 
 export default class ComputeNode extends BasicNode {
   private algorithmLibrary = new AlgorithmLibrary();
+  private algorithmName: string;
 
-  constructor(register: Register) {
+  constructor(register: Register, nodeSetting: {algorithm: string}) {
     super(register);
+    this.algorithmName = nodeSetting.algorithm;
     this.init().catch((err) => console.error("Initialization error:", err));
   }
 
   private async init(): Promise<void> {
     await this.producer.connect();
-    await this.sendRegistrationInfo("ComputeNode");
+    await this.sendRegistrationInfo(NodeType.ComputeNode);
 
-    this.startHeartbeat("ComputeNode");
+    this.startHeartbeat(NodeType.ComputeNode);
     await this.idConsumer.subscribe({
       topic: this.listenTopic,
       fromBeginning: true,
@@ -37,12 +40,11 @@ export default class ComputeNode extends BasicNode {
     });
   }
 
-  // 特定的计算逻辑
   async handleCompute(): Promise<void> {
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const { algorithmName, data } = JSON.parse(message.value.toString());
-        const result = this.algorithmLibrary.execute(algorithmName, data);
+        const { data } = JSON.parse(message.value.toString());
+        const result = this.algorithmLibrary.execute(this.algorithmName, data);
         
         if (result !== null) {
           if (this.sendTopic === undefined) return;

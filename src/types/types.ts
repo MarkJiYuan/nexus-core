@@ -1,8 +1,17 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
 
-const registrationTopic = "node-registration";
-const heartbeatTopic = "node-heartbeat";
-const managerTopic = "node-management";
+export enum Topics {
+registrationTopic = "node-registration",
+heartbeatTopic = "node-heartbeat",
+managerTopic = "node-management"
+}
+
+export enum NodeType {
+  ComputeNode = "ComputeNode",
+  DataNode = "DataNode",
+  OrganizationNode = "OrganizationNode",
+  StorageNode = "StorageNode"
+}
 
 export enum NodeStatus {
   Starting = "starting",
@@ -12,15 +21,32 @@ export enum NodeStatus {
   Error = "error",
 }
 
-export enum sendingMode {
+export enum SendingMode {
   Polling = "polling",
   EventDriven = "eventDriven"
 }
 
-export enum organizeMode {
+export enum OrganizeMode {
   Periodic = "periodic",
   EventDriven = "eventdriven"
 }
+
+export enum StorageMode {
+  File = "file",
+  Database = "database"
+}
+
+export interface StorageSettings {
+  storageType: 'file' | 'database';
+  filePath?: string;
+  dbConfig?: {
+    host: string;
+    user: string;
+    password: string;
+    database: string;
+  };
+}
+
 
 export interface NodeConfig {
   type: string;
@@ -74,5 +100,3 @@ export interface Node {
   ): Promise<void>;
   disconnect(): Promise<void>;
 }
-
-export { registrationTopic, heartbeatTopic, managerTopic };

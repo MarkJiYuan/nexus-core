@@ -1,6 +1,7 @@
 {
   "author": "Echo",
   "dependencies": {
+    "arg": "^5.0.2",
     "axios": "^1.5.1",
     "bignumber.js": "^9.1.2",
     "kafkajs": "^2.2.4",

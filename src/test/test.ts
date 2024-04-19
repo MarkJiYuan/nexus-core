@@ -1,8 +1,6 @@
 import { Kafka, Producer, Partitioners, logLevel } from "kafkajs";
 import NodeManager from "../core/manager";
-import { managerTopic } from "../types/types";
 import { Register } from "../core/register";
-import { time } from "console";
 
 const kafka = new Kafka({
   clientId: "test-client",

@@ -1,5 +1,6 @@
 import { time } from "console";
 import { Kafka } from "kafkajs";
+import { OrganizeMode } from "../types/types";
 import { timeout } from "src/utils/time";
 
 function delay(ms: number): Promise<void> {
@@ -32,11 +33,18 @@ async function runProducer() {
         action: "initiate",
         nodeId: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
         type: "OrganizationNode",
+        nodeSetting: {
+          organizeMode: "periodic",
+          interval: 1000
+        }
       },
       {
         action: "initiate",
         nodeId: "b303f695-3774-4221-93cc-5bca0e4eec9f",
         type: "ComputeNode",
+        nodeSetting : {
+          algorithm: "sum"
+        }
       },
       {
         action: "initiate",

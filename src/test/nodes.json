@@ -20,6 +20,26 @@
         "sendingMode": "polling",
         "pollingInterval": 1000
       }
+    },
+    {
+      "nodeId": "f6fc1819-dadb-4b11-8f44-aa30d9a27872",
+      "nodeType": "unknown",
+      "status": "starting"
+    },
+    {
+      "nodeId": "13002fde-f98b-4b17-84e1-654cf2bfdf66",
+      "nodeType": "unknown",
+      "status": "starting"
+    },
+    {
+      "nodeId": "226be351-2d3d-4b30-80bb-cb64b0b33e7c",
+      "nodeType": "unknown",
+      "status": "starting"
+    },
+    {
+      "nodeId": "63045574-0f2b-4ec0-a0f0-f891f9614bbf",
+      "nodeType": "unknown",
+      "status": "starting"
     }
   ],
   "pipelines": [

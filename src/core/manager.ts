@@ -1,10 +1,5 @@
-import {
-  registrationTopic,
-  heartbeatTopic,
-  managerTopic,
-} from "../types/types";
 import { Kafka, Consumer, Producer } from "kafkajs";
-import { NodeInfo, SystemState, NodeStatus } from "../types/types";
+import { Topics, SystemState, NodeStatus } from "../types/types";
 import fs from "fs";
 import path from "path";
 import BasicNode from "./node";
@@ -36,11 +31,11 @@ export class NodeManager {
     await this.producer.connect();
     await this.consumer.connect();
     await this.consumer.subscribe({
-      topic: managerTopic,
+      topic: Topics.managerTopic,
       fromBeginning: true,
     });
     await this.consumer.subscribe({
-      topic: registrationTopic,
+      topic: Topics.registrationTopic,
       fromBeginning: true,
     });
 
@@ -48,10 +43,10 @@ export class NodeManager {
     this.consumer.run({
       eachMessage: async ({ topic, message }) => {
         const info = JSON.parse(message.value.toString());
-        if (topic === registrationTopic) {
+        if (topic === Topics.registrationTopic) {
           // 处理节点注册信息
           this.handleNodeRegistration(info);
-        } else if (topic === managerTopic) {
+        } else if (topic === Topics.managerTopic) {
           // 处理来自管理信息的消息
           this.handleManagerMessage(info);
         }
@@ -198,8 +193,6 @@ export class NodeManager {
     if (node) {
       await node.disconnect(); // 假设节点的disconnect方法会处理所有清理逻辑
       this.nodes.delete(nodeId);
-
-      // 可选：如果节点间有特定的连接关系需要处理，这里应该添加逻辑来解除这些连接
     }
   }
 
@@ -244,11 +237,10 @@ export class NodeManager {
   private async listenToHeartbeats() {
     const consumer = this.kafka.consumer({ groupId: "manager-group" });
     await consumer.connect();
-    await consumer.subscribe({ topic: heartbeatTopic, fromBeginning: true });
+    await consumer.subscribe({ topic: Topics.heartbeatTopic, fromBeginning: true });
 
     await consumer.run({
       eachMessage: async ({ message }) => {
-        const messageValue = message.value.toString();
         const content = JSON.parse(message.value.toString());
         this.handleHeartbeat(content);
       },

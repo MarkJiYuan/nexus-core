@@ -1,10 +1,11 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
-import { registrationTopic } from "../types/types";
+import { Topics } from "../types/types";
 import { v4 as uuidv4 } from "uuid";
 import OrganizationNode from "./organize_node";
 import DataNode from "./data_node";
 import ComputeNode from "./compute_node";
 import StorageNode from "./storage_node";
+import { NodeType } from "../types/types";
 
 export class Register {
   public kafka: Kafka;
@@ -36,7 +37,7 @@ export class Register {
     };
     await this.producer.connect();
     await this.producer.send({
-      topic: registrationTopic,
+      topic: Topics.registrationTopic,
       messages: [{ value: JSON.stringify(registrationInfo) }],
     });
     console.log(`***(from register)Node ${this.nodeId} registered.`);
@@ -59,17 +60,17 @@ export class Register {
         }
 
         switch (type) {
-          case "OrganizationNode":
-            new OrganizationNode(this);
+          case NodeType.OrganizationNode:
+            new OrganizationNode(this, nodeSetting);
             break;
-          case "DataNode":
+          case NodeType.DataNode:
             new DataNode(this, nodeSetting);
             break;
-          case "ComputeNode":
-            new ComputeNode(this);
+          case NodeType.ComputeNode:
+            new ComputeNode(this, nodeSetting);
             break;
-          case "StorageNode":
-            new StorageNode(this);
+          case NodeType.StorageNode:
+            new StorageNode(this, nodeSetting);
             break;
           default:
             console.log(`***Unknown node type: ${type}`);

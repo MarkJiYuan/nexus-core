@@ -1,7 +1,8 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
-import { sendingMode } from "src/types/types";
+import { SendingMode } from "../types/types";
+import { NodeType } from "../types/types";
 
 export default class DataNode extends BasicNode {
   constructor(
@@ -11,10 +12,10 @@ export default class DataNode extends BasicNode {
     super(register);
 
     this.init().catch((err) => console.error("Initialization error:", err));
-    if (nodeSetting.sendingMode === sendingMode.Polling) {
+    if (nodeSetting.sendingMode === SendingMode.Polling) {
       //轮询式
       this.startPolling(nodeSetting.pollingInterval);
-    } else if (nodeSetting.sendingMode === sendingMode.EventDriven) {
+    } else if (nodeSetting.sendingMode === SendingMode.EventDriven) {
       //事件驱动式
       this.eventDriven();
     }
@@ -39,8 +40,8 @@ export default class DataNode extends BasicNode {
         }
 
         await this.producer.connect();
-        await this.sendRegistrationInfo("DataNode");
-        this.startHeartbeat("DataNode");
+        await this.sendRegistrationInfo(NodeType.DataNode);
+        this.startHeartbeat(NodeType.DataNode);
         this.sendPeriodicMessages();
       },
     });

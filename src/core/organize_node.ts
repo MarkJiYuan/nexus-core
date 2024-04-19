@@ -1,21 +1,28 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
-import { organizeMode } from "src/types/types";
+import { OrganizeMode } from "../types/types";
+import { NodeType } from "../types/types";
 
 export default class OrganizationNode extends BasicNode {
   private sendTopics: Set<string> = new Set();
   private receiveTopics: Set<string> = new Set();
+  private latestData: { [topic: string]: string } = {};
+  private organizeMode: string;
 
-  constructor(register: Register) {
+  constructor(register: Register, nodeSetting: {organizeMode: string, interval: number}) {
     super(register);
+    this.organizeMode = nodeSetting.organizeMode;
     this.init().catch((err) => console.error("Initialization error:", err));
+    if (this.organizeMode === OrganizeMode.Periodic) {
+      this.startPeriodicBroadcast(nodeSetting.interval);
+    }
   }
 
   private async init(): Promise<void> {
     await this.producer.connect();
-    await this.sendRegistrationInfo("OrganizationNode");
-    this.startHeartbeat("OrganizationNode");
+    await this.sendRegistrationInfo(NodeType.OrganizationNode);
+    this.startHeartbeat(NodeType.OrganizationNode);
 
     await this.idConsumer.subscribe({
       topic: this.listenTopic,
@@ -32,8 +39,9 @@ export default class OrganizationNode extends BasicNode {
           await this.addSendTopic(targetTopic);
         } else if (action === "becomeConsumer") {
           await this.addReceiveTopic(targetTopic);
-          await this.handleOrganization();
+          
         }
+        this.handleIncomingMessage(targetTopic, message.value.toString());
       },
     });
   }
@@ -48,23 +56,47 @@ export default class OrganizationNode extends BasicNode {
   async addReceiveTopic(topic: string): Promise<void> {
     if (!this.receiveTopics.has(topic)) {
       this.receiveTopics.add(topic);
-      this.consumer.stop();
-      await this.consumer.subscribe({ topic, fromBeginning: true });
+       await this.updateConsumerSubscriptions();
     }
   }
 
-  // 特定的组织逻辑
-  async handleOrganization(): Promise<void> {
+  async updateConsumerSubscriptions(): Promise<void> {
+    // 停止当前消费者并重新订阅所有主题
+    await this.consumer.stop();
+    await this.consumer.subscribe({ topics: Array.from(this.receiveTopics), fromBeginning: true });
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
-        const messageContent = message.value.toString();
-        this.sendMessage(messageContent);
-        console.log(
-          `***(from node)Message received from ${topic}[${partition}]: ${messageContent}`,
-        );
-      },
+        eachMessage: async ({ topic, message }) => {
+            console.log(`Received message from ${topic}: ${message.value.toString()}`);
+            this.handleIncomingMessage(topic, message.value.toString());
+        }
     });
+}
 
-    // 实现组织逻辑，如消息格式化、过滤等
+private handleIncomingMessage(topic: string, message: string): void {
+    this.latestData[topic] = message;
+    if (this.organizeMode === OrganizeMode.EventDriven) {
+        this.sendMessageForOrganize(topic, message);
+    }
+}
+
+  async sendMessageForOrganize(topic: string, message: string): Promise<void> {
+    if (this.sendTopics.has(topic)) {
+      await this.producer.send({
+        topic,
+        messages: [{ value: message }],
+      });
+      console.log(`Message sent to ${topic}: ${message}`);
+    } else {
+      console.error(`Attempted to send message to unregistered topic: ${topic}`);
+    }
   }
+
+  private startPeriodicBroadcast(interval: number): void {
+  setInterval(() => {
+    for (const topic of Object.keys(this.latestData)) {
+      this.sendMessageForOrganize(topic, this.latestData[topic]);
+      console.log(`Periodically sent message to ${topic}: ${this.latestData[topic]}`);
+    }
+  }, interval);
+}
 }

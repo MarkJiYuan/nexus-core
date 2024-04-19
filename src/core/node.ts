@@ -1,5 +1,5 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
-import { registrationTopic, heartbeatTopic } from "../types/types";
+import { Topics } from "../types/types";
 import { Register } from "./register";
 import Ajv from "ajv";
 const ajv = new Ajv();
@@ -45,7 +45,7 @@ export class BasicNode {
         timestamp: new Date().toISOString(),
       };
       await this.producer.send({
-        topic: heartbeatTopic,
+        topic: Topics.heartbeatTopic,
         messages: [{ value: JSON.stringify(message) }],
       });
     }, 30000);
@@ -58,7 +58,7 @@ export class BasicNode {
       timestamp: new Date().toISOString(),
     };
     await this.producer.send({
-      topic: registrationTopic,
+      topic: Topics.registrationTopic,
       messages: [{ value: JSON.stringify(registrationInfo) }],
     });
   }
