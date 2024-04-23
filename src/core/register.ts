@@ -14,10 +14,14 @@ export class Register {
   public nodeId: string;
   public listenTopic: string;
 
-  constructor(kafka: Kafka) {
-    this.nodeId = uuidv4();
+  constructor(kafka: Kafka, id?: string) {
+    if (id) {
+      this.nodeId = id;
+    } else {
+      this.nodeId = uuidv4();
+    }
     this.kafka = kafka;
-    this.listenTopic = `register ${this.nodeId}`;
+    this.listenTopic = `register_${this.nodeId}`;
     this.producer = kafka.producer();
 
     this.consumer = kafka.consumer({ groupId: `group-register-${this.nodeId}` });
@@ -53,8 +57,10 @@ export class Register {
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const { action, type, nodeSetting } = JSON.parse(message.value.toString());
+        const { action, type, nodeSetting } = JSON.parse(message.value.toString()).info;
+        console.log(message.value.toString())
         // 如果action不是"initiate"，则直接返回
+        console.log(`***Received message: ${action} ${type}`)
         if (action !== "initiate") {
           return;
         }

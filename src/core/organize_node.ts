@@ -10,7 +10,10 @@ export default class OrganizationNode extends BasicNode {
   private latestData: { [topic: string]: string } = {};
   private organizeMode: string;
 
-  constructor(register: Register, nodeSetting: {organizeMode: string, interval: number}) {
+  constructor(
+    register: Register,
+    nodeSetting: { organizeMode: string; interval: number },
+  ) {
     super(register);
     this.organizeMode = nodeSetting.organizeMode;
     this.init().catch((err) => console.error("Initialization error:", err));
@@ -39,9 +42,7 @@ export default class OrganizationNode extends BasicNode {
           await this.addSendTopic(targetTopic);
         } else if (action === "becomeConsumer") {
           await this.addReceiveTopic(targetTopic);
-          
         }
-        this.handleIncomingMessage(targetTopic, message.value.toString());
       },
     });
   }
@@ -56,47 +57,52 @@ export default class OrganizationNode extends BasicNode {
   async addReceiveTopic(topic: string): Promise<void> {
     if (!this.receiveTopics.has(topic)) {
       this.receiveTopics.add(topic);
-       await this.updateConsumerSubscriptions();
+      await this.updateConsumerSubscriptions();
     }
   }
 
   async updateConsumerSubscriptions(): Promise<void> {
     // 停止当前消费者并重新订阅所有主题
     await this.consumer.stop();
-    await this.consumer.subscribe({ topics: Array.from(this.receiveTopics), fromBeginning: true });
-    await this.consumer.run({
-        eachMessage: async ({ topic, message }) => {
-            console.log(`Received message from ${topic}: ${message.value.toString()}`);
-            this.handleIncomingMessage(topic, message.value.toString());
-        }
+    await this.consumer.subscribe({
+      topics: Array.from(this.receiveTopics),
+      fromBeginning: true,
     });
-}
+    await this.consumer.run({
+      eachMessage: async ({ topic, message }) => {
+        console.log(
+          `Received message from ${topic}: ${message.value.toString()}`,
+        );
+        this.handleIncomingMessage(topic, message.value.toString());
+      },
+    });
+  }
 
-private handleIncomingMessage(topic: string, message: string): void {
+  private handleIncomingMessage(topic: string, message: string): void {
     this.latestData[topic] = message;
     if (this.organizeMode === OrganizeMode.EventDriven) {
-        this.sendMessageForOrganize(topic, message);
-    }
-}
-
-  async sendMessageForOrganize(topic: string, message: string): Promise<void> {
-    if (this.sendTopics.has(topic)) {
-      await this.producer.send({
-        topic,
-        messages: [{ value: message }],
-      });
-      console.log(`Message sent to ${topic}: ${message}`);
-    } else {
-      console.error(`Attempted to send message to unregistered topic: ${topic}`);
+      for (const sendtopic of this.sendTopics) {
+        this.sendMessageForOrganize(sendtopic, this.latestData[topic]);
+      }
     }
   }
 
+  async sendMessageForOrganize(topic: string, message: string): Promise<void> {
+    await this.producer.send({
+      topic,
+      messages: [{ value: message }],
+    });
+    console.log(`Message sent to ${topic}: ${message}`);
+  }
+
   private startPeriodicBroadcast(interval: number): void {
-  setInterval(() => {
-    for (const topic of Object.keys(this.latestData)) {
-      this.sendMessageForOrganize(topic, this.latestData[topic]);
-      console.log(`Periodically sent message to ${topic}: ${this.latestData[topic]}`);
-    }
-  }, interval);
-}
+    setInterval(() => {
+      for (const topic of Object.keys(this.latestData)) {
+        this.sendMessageForOrganize(topic, this.latestData[topic]);
+        console.log(
+          `Periodically sent message to ${topic}: ${this.latestData[topic]}`,
+        );
+      }
+    }, interval);
+  }
 }

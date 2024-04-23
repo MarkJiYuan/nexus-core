@@ -23,7 +23,7 @@ export class BasicNode {
         groupId: `group-${this.nodeId}`,
       });
 
-      this.listenTopic = `node ${this.nodeId}`;
+      this.listenTopic = `node_${this.nodeId}`;
       this.producer = register.producer;
       this.kafka = register.kafka;
       this.messageCount = 0;
@@ -70,6 +70,7 @@ export class BasicNode {
   async setConsumer(receiveTopic: string): Promise<void> {
     await this.consumer.stop();
     this.receiveTopic.push(receiveTopic);
+    console.log("test")
     console.log(this.receiveTopic);
     await this.consumer.subscribe({
       topics: this.receiveTopic,
@@ -82,20 +83,20 @@ export class BasicNode {
       return;
     }
 
-    //检验数据合理性
-    try {
-    const messageObj = JSON.parse(message);
-    if (!this.validateData(messageObj)) {
-      console.error('Data validation failed, message not sent.');
-      return;
-    }
-    await this.producer.send({
-      topic: this.sendTopic,
-      messages: [{ value: message }],
-    });
-  } catch (error) {
-    console.error('Error in sending message:', error);
-  }
+  //   //检验数据合理性
+  //   try {
+  //   const messageObj = JSON.parse(message);
+  //   if (!this.validateData(messageObj)) {
+  //     console.error('Data validation failed, message not sent.');
+  //     return;
+  //   }
+  //   await this.producer.send({
+  //     topic: this.sendTopic,
+  //     messages: [{ value: message }],
+  //   });
+  // } catch (error) {
+  //   console.error('Error in sending message:', error);
+  // }
 
     await this.producer.send({
       topic: this.sendTopic,
@@ -123,26 +124,26 @@ export class BasicNode {
   }
 
   //监测消息对象是否符合规范
-  validateData(message) {
-    const schema = {
-      type: "object",
-      properties: {
-        name: { type: "string", minLength: 1 },
-        age: { type: "number", minimum: 0 },
-        email: { type: "string", format: "email" },
-      },
-      required: ["name", "age", "email"],
-      additionalProperties: false,
-    };
+  // validateData(message) {
+  //   const schema = {
+  //     type: "object",
+  //     properties: {
+  //       name: { type: "string", minLength: 1 },
+  //       age: { type: "number", minimum: 0 },
+  //       email: { type: "string", format: "email" },
+  //     },
+  //     required: ["name", "age", "email"],
+  //     additionalProperties: false,
+  //   };
 
-    const validate = ajv.compile(schema);
-    const valid = validate(message);
-    if (!valid) {
-      console.error(validate.errors);
-      return false;
-    }
-    return true;
-  }
+  //   const validate = ajv.compile(schema);
+  //   const valid = validate(message);
+  //   if (!valid) {
+  //     console.error(validate.errors);
+  //     return false;
+  //   }
+  //   return true;
+  // }
 }
 
 export default BasicNode;

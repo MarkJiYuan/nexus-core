@@ -1,68 +1,6 @@
 {
   "nodes": [
-    {
-      "nodeId": "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
-      "nodeType": "OrganizationNode"
-    },
-    {
-      "nodeId": "b303f695-3774-4221-93cc-5bca0e4eec9f",
-      "nodeType": "ComputeNode"
-    },
-    {
-      "nodeId": "75f4c9f8-462c-4f2f-90ea-72607e43c216",
-      "nodeType": "StorageNode"
-    },
-    {
-      "nodeId": "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
-      "nodeType": "DataNode",
-      "status": "Idle",
-      "nodeSetting": {
-        "sendingMode": "polling",
-        "pollingInterval": 1000
-      }
-    },
-    {
-      "nodeId": "f6fc1819-dadb-4b11-8f44-aa30d9a27872",
-      "nodeType": "unknown",
-      "status": "starting"
-    },
-    {
-      "nodeId": "13002fde-f98b-4b17-84e1-654cf2bfdf66",
-      "nodeType": "unknown",
-      "status": "starting"
-    },
-    {
-      "nodeId": "226be351-2d3d-4b30-80bb-cb64b0b33e7c",
-      "nodeType": "unknown",
-      "status": "starting"
-    },
-    {
-      "nodeId": "63045574-0f2b-4ec0-a0f0-f891f9614bbf",
-      "nodeType": "unknown",
-      "status": "starting"
-    }
   ],
   "pipelines": [
-    {
-      "fromNodeId": "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
-      "toNodeId": "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
-      "details": {
-        "topic": "from-node-e405f4c3-fbf8-4970-96b8-09cfaffe0b2c-to-node-3e0c7cde-ce03-4498-b993-cfe1d9a1b932"
-      }
-    },
-    {
-      "fromNodeId": "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
-      "toNodeId": "b303f695-3774-4221-93cc-5bca0e4eec9f",
-      "details": {
-        "topic": "from-node-3e0c7cde-ce03-4498-b993-cfe1d9a1b932-to-node-b303f695-3774-4221-93cc-5bca0e4eec9f"
-      }
-    },
-    {
-      "fromNodeId": "b303f695-3774-4221-93cc-5bca0e4eec9f",
-      "toNodeId": "75f4c9f8-462c-4f2f-90ea-72607e43c216",
-      "details": {
-        "topic": "from-node-b303f695-3774-4221-93cc-5bca0e4eec9f-to-node-75f4c9f8-462c-4f2f-90ea-72607e43c216"
-      }
-    }
   ]
 }

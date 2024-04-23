@@ -1,16 +1,22 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
 
 export enum Topics {
-registrationTopic = "node-registration",
-heartbeatTopic = "node-heartbeat",
-managerTopic = "node-management"
+  registrationTopic = "node-registration",
+  heartbeatTopic = "node-heartbeat",
+  managerTopic = "node-management",
+}
+
+export enum Actions {
+  Initiate = "initiate",
+  Connect = "connect",
+  Configure = "configure",
 }
 
 export enum NodeType {
   ComputeNode = "ComputeNode",
   DataNode = "DataNode",
   OrganizationNode = "OrganizationNode",
-  StorageNode = "StorageNode"
+  StorageNode = "StorageNode",
 }
 
 export enum NodeStatus {
@@ -23,22 +29,24 @@ export enum NodeStatus {
 
 export enum SendingMode {
   Polling = "polling",
-  EventDriven = "eventDriven"
+  EventDriven = "eventDriven",
 }
 
 export enum OrganizeMode {
   Periodic = "periodic",
-  EventDriven = "eventdriven"
+  EventDriven = "eventDriven",
 }
 
 export enum StorageMode {
   File = "file",
-  Database = "database"
+  Database = "database",
 }
 
 export interface StorageSettings {
-  storageType: 'file' | 'database';
-  filePath?: string;
+  storageType: "file" | "database";
+  fileConfig?: {
+    path: string;
+  };
   dbConfig?: {
     host: string;
     user: string;
@@ -46,7 +54,6 @@ export interface StorageSettings {
     database: string;
   };
 }
-
 
 export interface NodeConfig {
   type: string;

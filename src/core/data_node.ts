@@ -10,7 +10,6 @@ export default class DataNode extends BasicNode {
     nodeSetting: { sendingMode: String; pollingInterval?: number },
   ) {
     super(register);
-
     this.init().catch((err) => console.error("Initialization error:", err));
     if (nodeSetting.sendingMode === SendingMode.Polling) {
       //轮询式
@@ -22,6 +21,8 @@ export default class DataNode extends BasicNode {
   }
 
   private async init(): Promise<void> {
+    await this.sendRegistrationInfo(NodeType.DataNode);
+    this.startHeartbeat(NodeType.DataNode);
     await this.idConsumer.subscribe({
       topic: this.listenTopic,
       fromBeginning: true,
@@ -40,9 +41,8 @@ export default class DataNode extends BasicNode {
         }
 
         await this.producer.connect();
-        await this.sendRegistrationInfo(NodeType.DataNode);
-        this.startHeartbeat(NodeType.DataNode);
-        this.sendPeriodicMessages();
+
+        // this.sendPeriodicMessages();
       },
     });
   }
@@ -50,7 +50,6 @@ export default class DataNode extends BasicNode {
   private fetchData(): any {
     // 模拟传感器数据
     return {
-      algorithmName: "sum",
       data: [1, 2, 3, 4, 5],
     };
   }
@@ -76,13 +75,11 @@ export default class DataNode extends BasicNode {
         algorithmName: "sum",
         data: [1, 2, 3, 4, 5],
       };
+      console.log(
+        `Sending message from DataNode ${this.nodeId}: ${JSON.stringify(message)}`,
+      );
       await this.sendMessage(JSON.stringify(message));
     }, 5000);
   }
 
-  // 特定的数据处理逻辑
-  async handleData(message: string): Promise<void> {
-    console.log(`Processing message in DataNode ${this.nodeId}: ${message}`);
-    // 实现数据处理逻辑，如收集、转发等
-  }
 }

@@ -21,7 +21,7 @@ const kafka = new Kafka({
 // const producer = kafka.producer({});
 const nodeManager = new NodeManager(kafka);
 
-const register1 = new Register(kafka);
-const register2 = new Register(kafka);
-const register3 = new Register(kafka);
-const register4 = new Register(kafka);
+const register1 = new Register(kafka,"1");
+const register2 = new Register(kafka,"2");
+const register3 = new Register(kafka,"3");
+const register4 = new Register(kafka,"4");

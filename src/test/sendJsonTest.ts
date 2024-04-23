@@ -22,51 +22,56 @@ async function runProducer() {
     operations: [
       {
         action: "initiate",
-        nodeId: "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
+        nodeId: "1",
         type: "DataNode",
         nodeSetting: {
           sendingMode: "polling",
-          pollingInterval: 1000,
+          pollingInterval: 5000,
         },
       },
       {
         action: "initiate",
-        nodeId: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
+        nodeId: "2",
         type: "OrganizationNode",
         nodeSetting: {
-          organizeMode: "periodic",
-          interval: 1000
-        }
+          organizeMode: "eventDriven",
+        },
       },
       {
         action: "initiate",
-        nodeId: "b303f695-3774-4221-93cc-5bca0e4eec9f",
+        nodeId: "3",
         type: "ComputeNode",
-        nodeSetting : {
-          algorithm: "sum"
-        }
+        nodeSetting: {
+          algorithm: "sum",
+        },
       },
       {
         action: "initiate",
-        nodeId: "75f4c9f8-462c-4f2f-90ea-72607e43c216",
+        nodeId: "4",
         type: "StorageNode",
+        nodeSetting: {
+          storageType: "file",
+          fileConfig: {
+            path: "./data.txt",
+          },
+        },
       },
       {
         action: "connect",
-        from: "e405f4c3-fbf8-4970-96b8-09cfaffe0b2c",
-        to: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
+        from: "1",
+        to: "2",
         details: [],
       },
       {
         action: "connect",
-        from: "3e0c7cde-ce03-4498-b993-cfe1d9a1b932",
-        to: "b303f695-3774-4221-93cc-5bca0e4eec9f",
+        from: "2",
+        to: "3",
         details: [],
       },
       {
         action: "connect",
-        from: "b303f695-3774-4221-93cc-5bca0e4eec9f",
-        to: "75f4c9f8-462c-4f2f-90ea-72607e43c216",
+        from: "3",
+        to: "4",
         details: [],
       },
     ],

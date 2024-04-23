@@ -1,5 +1,5 @@
 import { Kafka, Consumer, Producer } from "kafkajs";
-import { Topics, SystemState, NodeStatus } from "../types/types";
+import { Topics, SystemState, NodeStatus, Actions, NodeType } from "../types/types";
 import fs from "fs";
 import path from "path";
 import BasicNode from "./node";
@@ -59,15 +59,15 @@ export class NodeManager {
     if (Array.isArray(content.operations)) {
       content.operations.forEach((operation: any) => {
         switch (operation.action) {
-          case "connect":
+          case Actions.Connect:
             // 节点间连接  即建立管道
             this.handleConnectAction(operation);
             break;
-          case "configure":
+          case Actions.Configure:
             // 节点配置
             this.handleConfigureAction(operation);
             break;
-          case "initiate":
+          case Actions.Initiate:
             // 初始化
             this.handleInitiationAction(operation);
             break;
@@ -82,7 +82,7 @@ export class NodeManager {
 
   //处理节点间连接
   private async handleConnectAction(operation: any): Promise<void> {
-    const topicName = `from ${operation.from} to ${operation.to}`;
+    const topicName = `from_${operation.from}_to_${operation.to}`;
     const data = this.loadNodesData();
     data.pipelines.push({
       fromNodeId: operation.from,
@@ -96,7 +96,7 @@ export class NodeManager {
 
     // 告诉from节点成为该topic的生产者
     await this.producer.send({
-      topic: `node ${operation.from}`,
+      topic: `node_${operation.from}`,
       messages: [
         {
           value: JSON.stringify({ action: "becomeProducer", topic: topicName }),
@@ -106,7 +106,7 @@ export class NodeManager {
 
     // 告诉to节点成为该topic的消费者
     await this.producer.send({
-      topic: `node ${operation.to}`,
+      topic: `node_${operation.to}`,
       messages: [
         {
           value: JSON.stringify({ action: "becomeConsumer", topic: topicName }),
@@ -122,14 +122,14 @@ export class NodeManager {
   //处理初始化
   private async handleInitiationAction(info: any): Promise<void> {
     await this.producer.send({
-      topic: `register ${info.nodeId}`,
+      topic: `register_${info.nodeId}`,
       messages: [
         {
           value: JSON.stringify({ info }),
         },
       ],
     });
-    this.updateNodeStatus(info.nodeId, NodeStatus.Starting);
+    this.updateNodeStatus(info.nodeId, NodeStatus.Starting, info.type,info.nodeSetting);
     console.log(
       `***(from manager)sending initiate message to Register ${info.nodeId} with type ${info.type}`,
     );
@@ -150,6 +150,7 @@ export class NodeManager {
     type: string;
     timestamp: string;
   }): void {
+    //如果有nodeType，说明是具体节点注册信息
     if (info.nodeType) {
       console.log(
         `***(from manager)Node(${info.nodeType}) ${info.nodeId} registered.`,
@@ -163,6 +164,7 @@ export class NodeManager {
 
       this.nodes.set(info.nodeId, info);
     } else {
+      //如果没有nodeType，说明是来自register的信息
       //存储为json
       const data = this.loadNodesData();
       const existingNodeIndex = data.nodes.findIndex(
@@ -204,14 +206,19 @@ export class NodeManager {
       nodes.forEach((node) => {
         this.nodes.set(node.nodeId, node);
       });
-      console.log("Loaded nodes info from file.");
     }
   }
 
-  private updateNodeStatus(nodeId: string, status: NodeStatus): void {
+  private updateNodeStatus(nodeId: string, status: NodeStatus, nodetype?: NodeType,nodeSetting?:any): void {
     const data = this.loadNodesData();
     const node = data.nodes.find((n) => n.nodeId === nodeId);
     if (node) {
+      if (nodeSetting) {
+        node.nodeSetting = nodeSetting;
+      }
+      if (nodetype) {
+        node.nodeType = nodetype;
+      }
       node.status = status;
       this.saveNodesData(data);
       console.log(`Status of node ${nodeId} updated to ${status}.`);
@@ -237,7 +244,10 @@ export class NodeManager {
   private async listenToHeartbeats() {
     const consumer = this.kafka.consumer({ groupId: "manager-group" });
     await consumer.connect();
-    await consumer.subscribe({ topic: Topics.heartbeatTopic, fromBeginning: true });
+    await consumer.subscribe({
+      topic: Topics.heartbeatTopic,
+      fromBeginning: true,
+    });
 
     await consumer.run({
       eachMessage: async ({ message }) => {

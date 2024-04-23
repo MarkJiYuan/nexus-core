@@ -46,7 +46,8 @@ export default class StorageNode extends BasicNode {
         const messageContent = message.value.toString();
         switch (this.storageSettings.storageType) {
           case StorageMode.File:
-            const filePath = this.storageSettings.filePath || "./defaultStorage.txt";
+            const filePath = this.storageSettings.fileConfig.path || "./defaultStorage.txt";
+            console.log(filePath)
             fs.appendFile(filePath, messageContent + "\n", (err) => {
               if (err) {
                 console.error("Error writing message to file:", err);
