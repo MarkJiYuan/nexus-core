@@ -1,5 +1,5 @@
 import { Kafka, Producer, Consumer } from "kafkajs";
-import { Topics } from "../types/types";
+import { Topics, Actions, NodeStatus } from "../types/types";
 import { Register } from "./register";
 import Ajv from "ajv";
 const ajv = new Ajv();
@@ -33,6 +33,7 @@ export class BasicNode {
         groupId: `group-node-${this.nodeId}`,
       });
       await this.idConsumer.connect();
+      setInterval(() => this.monitorRate(), 30000);
     })();
   }
 
@@ -41,7 +42,7 @@ export class BasicNode {
       const message = {
         nodeId: this.nodeId,
         nodeType: nodeType,
-        type: "heartbeat",
+        type: Actions.Heartbeat,
         timestamp: new Date().toISOString(),
       };
       await this.producer.send({
@@ -70,7 +71,6 @@ export class BasicNode {
   async setConsumer(receiveTopic: string): Promise<void> {
     await this.consumer.stop();
     this.receiveTopic.push(receiveTopic);
-    console.log("test")
     console.log(this.receiveTopic);
     await this.consumer.subscribe({
       topics: this.receiveTopic,
@@ -83,41 +83,56 @@ export class BasicNode {
       return;
     }
 
-  //   //检验数据合理性
-  //   try {
-  //   const messageObj = JSON.parse(message);
-  //   if (!this.validateData(messageObj)) {
-  //     console.error('Data validation failed, message not sent.');
-  //     return;
-  //   }
-  //   await this.producer.send({
-  //     topic: this.sendTopic,
-  //     messages: [{ value: message }],
-  //   });
-  // } catch (error) {
-  //   console.error('Error in sending message:', error);
-  // }
+    //   //检验数据合理性
+    //   try {
+    //   const messageObj = JSON.parse(message);
+    //   if (!this.validateData(messageObj)) {
+    //     console.error('Data validation failed, message not sent.');
+    //     return;
+    //   }
+    //   await this.producer.send({
+    //     topic: this.sendTopic,
+    //     messages: [{ value: message }],
+    //   });
+    // } catch (error) {
+    //   console.error('Error in sending message:', error);
+    // }
 
     await this.producer.send({
       topic: this.sendTopic,
       messages: [{ value: message }],
     });
 
-    //监测流速
+    //每分钟发送消息数
     this.messageCount++;
-    this.monitorRate();
   }
 
   //监测每秒发送消息数
-  monitorRate() {
+  async monitorRate() {
     const currentTime = Date.now();
     const elapsedSeconds = (currentTime - this.startTime) / 1000;
 
-    if (elapsedSeconds >= 60) {
-      console.log(
-        `Messages per minute: ${this.messageCount / (elapsedSeconds / 60)}`,
-      );
+    if (elapsedSeconds >= 30) {
+      // 发送状态消息到managerTopic
+      const status =
+        this.messageCount > 0 ? NodeStatus.Working : NodeStatus.Idle;
 
+      const message = {operations:
+        [
+          {
+            action: Actions.UpdateStatus,
+            nodeId: this.nodeId,
+            status: status,
+            timestamp: new Date().toISOString(),
+          }
+        ]
+      };
+      await this.producer.send({
+        topic: Topics.managerTopic,
+        messages: [{ value: JSON.stringify(message) }],
+      });
+
+      // 重置计数器和开始时间
       this.messageCount = 0;
       this.startTime = Date.now();
     }

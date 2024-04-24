@@ -10,6 +10,10 @@ export enum Actions {
   Initiate = "initiate",
   Connect = "connect",
   Configure = "configure",
+  UpdateStatus = "updateStatus",
+  Heartbeat = "heartbeat",
+  BecomeProducer = "becomeProducer",
+  BecomeConsumer = "becomeConsumer",
 }
 
 export enum NodeType {
@@ -17,6 +21,7 @@ export enum NodeType {
   DataNode = "DataNode",
   OrganizationNode = "OrganizationNode",
   StorageNode = "StorageNode",
+  Register = "Register",
 }
 
 export enum NodeStatus {

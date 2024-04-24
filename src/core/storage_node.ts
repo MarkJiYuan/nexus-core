@@ -2,7 +2,7 @@ import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
 import fs from "fs";
-import { NodeType } from "../types/types";
+import { NodeType, Actions } from "../types/types";
 import { StorageMode, StorageSettings } from "../types/types";
 
 export default class StorageNode extends BasicNode {
@@ -30,9 +30,9 @@ export default class StorageNode extends BasicNode {
           message.value.toString(),
         );
         console.log(`***Received message: ${action} ${targetTopic}`);
-        if (action === "becomeProducer") {
+        if (action === Actions.BecomeProducer) {
           await this.setProducer(targetTopic);
-        } else if (action === "becomeConsumer") {
+        } else if (action === Actions.BecomeConsumer) {
           await this.setConsumer(targetTopic);
           this.handleStorage();
         }
@@ -43,6 +43,7 @@ export default class StorageNode extends BasicNode {
   async handleStorage(): Promise<void> {
     await this.consumer.run({
       eachMessage: async ({ message }) => {
+        this.messageCount++;
         const messageContent = message.value.toString();
         switch (this.storageSettings.storageType) {
           case StorageMode.File:

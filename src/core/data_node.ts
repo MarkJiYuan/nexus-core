@@ -1,7 +1,7 @@
 import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
-import { SendingMode } from "../types/types";
+import { Actions, SendingMode } from "../types/types";
 import { NodeType } from "../types/types";
 
 export default class DataNode extends BasicNode {
@@ -34,9 +34,9 @@ export default class DataNode extends BasicNode {
           message.value.toString(),
         );
         console.log(`***Received message: ${action} ${targetTopic}`);
-        if (action === "becomeProducer") {
+        if (action === Actions.BecomeProducer) {
           await this.setProducer(targetTopic);
-        } else if (action === "becomeConsumer") {
+        } else if (action === Actions.BecomeConsumer) {
           await this.setConsumer(targetTopic);
         }
 

@@ -2,7 +2,7 @@ import BasicNode from "./node";
 import { Kafka } from "kafkajs";
 import { Register } from "./register";
 import { OrganizeMode } from "../types/types";
-import { NodeType } from "../types/types";
+import { NodeType, Actions } from "../types/types";
 
 export default class OrganizationNode extends BasicNode {
   private sendTopics: Set<string> = new Set();
@@ -38,9 +38,9 @@ export default class OrganizationNode extends BasicNode {
           message.value.toString(),
         );
         console.log(`***Received message: ${action} ${targetTopic}`);
-        if (action === "becomeProducer") {
+        if (action === Actions.BecomeProducer) {
           await this.addSendTopic(targetTopic);
-        } else if (action === "becomeConsumer") {
+        } else if (action === Actions.BecomeConsumer) {
           await this.addReceiveTopic(targetTopic);
         }
       },
@@ -80,6 +80,7 @@ export default class OrganizationNode extends BasicNode {
 
   private handleIncomingMessage(topic: string, message: string): void {
     this.latestData[topic] = message;
+    this.messageCount++;
     if (this.organizeMode === OrganizeMode.EventDriven) {
       for (const sendtopic of this.sendTopics) {
         this.sendMessageForOrganize(sendtopic, this.latestData[topic]);
@@ -92,6 +93,7 @@ export default class OrganizationNode extends BasicNode {
       topic,
       messages: [{ value: message }],
     });
+    this.messageCount++;
     console.log(`Message sent to ${topic}: ${message}`);
   }
 

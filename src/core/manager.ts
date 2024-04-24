@@ -1,5 +1,11 @@
 import { Kafka, Consumer, Producer } from "kafkajs";
-import { Topics, SystemState, NodeStatus, Actions, NodeType } from "../types/types";
+import {
+  Topics,
+  SystemState,
+  NodeStatus,
+  Actions,
+  NodeType,
+} from "../types/types";
 import fs from "fs";
 import path from "path";
 import BasicNode from "./node";
@@ -25,6 +31,7 @@ export class NodeManager {
     setInterval(() => {
       this.checkNodeStatus();
     }, 60000);
+    process.on("SIGINT", this.cleanupAndExit.bind(this));
   }
 
   private async init(): Promise<void> {
@@ -71,6 +78,9 @@ export class NodeManager {
             // 初始化
             this.handleInitiationAction(operation);
             break;
+          case Actions.UpdateStatus:
+            this.handleUpdateStatusAction(operation);
+            break;
           default:
             console.log(`***Unsupported operation: ${operation.action}`);
         }
@@ -99,7 +109,7 @@ export class NodeManager {
       topic: `node_${operation.from}`,
       messages: [
         {
-          value: JSON.stringify({ action: "becomeProducer", topic: topicName }),
+          value: JSON.stringify({ action: Actions.BecomeProducer, topic: topicName }),
         },
       ],
     });
@@ -109,7 +119,7 @@ export class NodeManager {
       topic: `node_${operation.to}`,
       messages: [
         {
-          value: JSON.stringify({ action: "becomeConsumer", topic: topicName }),
+          value: JSON.stringify({ action: Actions.BecomeConsumer, topic: topicName }),
         },
       ],
     });
@@ -129,7 +139,12 @@ export class NodeManager {
         },
       ],
     });
-    this.updateNodeStatus(info.nodeId, NodeStatus.Starting, info.type,info.nodeSetting);
+    this.updateNodeStatus(
+      info.nodeId,
+      NodeStatus.Starting,
+      info.type,
+      info.nodeSetting,
+    );
     console.log(
       `***(from manager)sending initiate message to Register ${info.nodeId} with type ${info.type}`,
     );
@@ -141,6 +156,11 @@ export class NodeManager {
     console.log(
       `***Configuring node ${info.nodeId} with config: ${JSON.stringify(info.config)}`,
     );
+  }
+  //处理节点状态更新
+  private handleUpdateStatusAction(info: any): void {
+    //
+    this.updateNodeStatus(info.nodeId, info.status);
   }
 
   //处理来register的信息或者节点注册信息
@@ -170,9 +190,8 @@ export class NodeManager {
       const existingNodeIndex = data.nodes.findIndex(
         (node) => node.nodeId === info.nodeId,
       );
-
+      //检验是否已经存在
       if (existingNodeIndex !== -1) {
-        // 如果已存在具有相同nodeId的节点，不执行任何操作
         console.log(
           `***(from manager) Node(${info.nodeType}) ${info.nodeId} is already registered.`,
         );
@@ -180,7 +199,7 @@ export class NodeManager {
       }
       data.nodes.push({
         nodeId: info.nodeId,
-        nodeType: "unknown",
+        nodeType: NodeType.Register,
         status: NodeStatus.Starting,
       });
       this.saveNodesData(data);
@@ -209,7 +228,12 @@ export class NodeManager {
     }
   }
 
-  private updateNodeStatus(nodeId: string, status: NodeStatus, nodetype?: NodeType,nodeSetting?:any): void {
+  private updateNodeStatus(
+    nodeId: string,
+    status: NodeStatus,
+    nodetype?: NodeType,
+    nodeSetting?: any,
+  ): void {
     const data = this.loadNodesData();
     const node = data.nodes.find((n) => n.nodeId === nodeId);
     if (node) {
@@ -276,6 +300,12 @@ export class NodeManager {
         console.log(`***Node ${nodeId} is not responding.`);
       }
     }
+  }
+
+  private async cleanupAndExit(): Promise<void> {
+    const emptyState: SystemState = { nodes: [], pipelines: [] };
+    this.saveNodesData(emptyState);
+    process.exit(0);
   }
 }
 
