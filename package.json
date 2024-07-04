@@ -6,6 +6,7 @@
     "bignumber.js": "^9.1.2",
     "kafkajs": "^2.2.4",
     "mongodb": "^6.5.0",
+    "pg": "^8.12.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

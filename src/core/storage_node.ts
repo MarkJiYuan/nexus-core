@@ -4,9 +4,11 @@ import { Register } from "./register";
 import fs from "fs";
 import { NodeType, Actions } from "../types/types";
 import { StorageMode, StorageSettings } from "../types/types";
+import { ensureTableAndInsert } from "../utils/pg/psql";
+import { measureMemory } from "vm";
 
 export default class StorageNode extends BasicNode {
-  private storageSettings: StorageSettings
+  private storageSettings: StorageSettings;
 
   constructor(register: Register, nodeSetting: StorageSettings) {
     super(register);
@@ -45,10 +47,11 @@ export default class StorageNode extends BasicNode {
       eachMessage: async ({ message }) => {
         this.messageCount++;
         const messageContent = message.value.toString();
+        const parsedMessage = JSON.parse(messageContent);
         switch (this.storageSettings.storageType) {
           case StorageMode.File:
-            const filePath = this.storageSettings.fileConfig.path || "./defaultStorage.txt";
-            console.log(filePath)
+            const filePath =
+              this.storageSettings.fileConfig.path || "./defaultStorage.txt";
             fs.appendFile(filePath, messageContent + "\n", (err) => {
               if (err) {
                 console.error("Error writing message to file:", err);
@@ -58,14 +61,11 @@ export default class StorageNode extends BasicNode {
             });
             break;
           case StorageMode.Database:
-            // const pool = new Pool(this.storageSettings.dbConfig);
-            // pool.query("INSERT INTO messages(content) VALUES($1)", [messageContent], (err: any) => {
-            //   if (err) {
-            //     console.error("Error storing message to database:", err);
-            //   } else {
-            //     console.log(`Message stored to database: ${messageContent}`);
-            //   }
-            // });
+            const tableName = parsedMessage.sheetName;
+            const data = parsedMessage.data;
+
+            await ensureTableAndInsert(tableName, data);
+            console.log(`Message stored to database table: ${tableName}`);
             break;
         }
       },

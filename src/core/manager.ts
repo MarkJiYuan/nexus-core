@@ -15,7 +15,7 @@ export class NodeManager {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
-  private nodesFilePath = path.resolve(__dirname, "../test/nodes.json");
+  private nodesFilePath = path.resolve(__dirname, "../log/nodes.json");
 
   private nodes: Map<string, any> = new Map();
   private lastHeartbeat: { [nodeId: string]: Date } = {}; //记录最后一次心跳的时间

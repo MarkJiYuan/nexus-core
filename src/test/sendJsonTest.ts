@@ -26,54 +26,72 @@ async function runProducer() {
         type: "DataNode",
         nodeSetting: {
           sendingMode: "polling",
-          pollingInterval: 5000,
+          pollingInterval: 1000,
+          pollingConfig: {
+            symbol: "XAUUSD",
+            period: "M",
+            pidx: 1,
+            psize: 1,
+            withlast: 0,
+          },
         },
       },
-      {
-        action: "initiate",
-        nodeId: "2",
-        type: "OrganizationNode",
-        nodeSetting: {
-          organizeMode: "eventDriven",
-        },
-      },
-      {
-        action: "initiate",
-        nodeId: "3",
-        type: "ComputeNode",
-        nodeSetting: {
-          algorithm: "sum",
-        },
-      },
+      // {
+      //   action: "initiate",
+      //   nodeId: "2",
+      //   type: "OrganizationNode",
+      //   nodeSetting: {
+      //     organizeMode: "eventDriven",
+      //   },
+      // },
+      // {
+      //   action: "initiate",
+      //   nodeId: "3",
+      //   type: "ComputeNode",
+      //   nodeSetting: {
+      //     algorithm: "sum",
+      //   },
+      // },
+      // {
+      //   action: "initiate",
+      //   nodeId: "4",
+      //   type: "StorageNode",
+      //   nodeSetting: {
+      //     storageType: "file",
+      //     fileConfig: {
+      //       path: "../log/data.txt",
+      //     },
+      //   },
+      // },
       {
         action: "initiate",
         nodeId: "4",
         type: "StorageNode",
         nodeSetting: {
-          storageType: "file",
-          fileConfig: {
-            path: "./data.txt",
+          storageType: "database",
+          dbconfig: {
+            tableName: "kline_XAUUSD_1M",
           },
         },
       },
       {
         action: "connect",
         from: "1",
-        to: "2",
-        details: [],
-      },
-      {
-        action: "connect",
-        from: "2",
-        to: "3",
-        details: [],
-      },
-      {
-        action: "connect",
-        from: "3",
         to: "4",
         details: [],
       },
+      // {
+      //   action: "connect",
+      //   from: "2",
+      //   to: "3",
+      //   details: [],
+      // },
+      // {
+      //   action: "connect",
+      //   from: "3",
+      //   to: "4",
+      //   details: [],
+      // },
     ],
   };
 

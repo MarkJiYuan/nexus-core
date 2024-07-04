@@ -53,10 +53,7 @@ export interface StorageSettings {
     path: string;
   };
   dbConfig?: {
-    host: string;
-    user: string;
-    password: string;
-    database: string;
+   tableName: string; 
   };
 }
 
