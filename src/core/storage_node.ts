@@ -4,8 +4,9 @@ import { Register } from "./register";
 import fs from "fs";
 import { NodeType, Actions } from "../types/types";
 import { StorageMode, StorageSettings } from "../types/types";
-import { ensureTableAndInsert } from "../utils/pg/psql";
-import { measureMemory } from "vm";
+import PostgreSQLManager from "../utils/pg/psql";
+
+const dbManager = new PostgreSQLManager();
 
 export default class StorageNode extends BasicNode {
   private storageSettings: StorageSettings;
@@ -61,10 +62,9 @@ export default class StorageNode extends BasicNode {
             });
             break;
           case StorageMode.Database:
-            const tableName = parsedMessage.sheetName;
+            const tableName = parsedMessage.tableName;
             const data = parsedMessage.data;
-
-            await ensureTableAndInsert(tableName, data);
+            await dbManager.ensureTableAndInsert(tableName, data);
             console.log(`Message stored to database table: ${tableName}`);
             break;
         }

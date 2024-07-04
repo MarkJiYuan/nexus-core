@@ -29,9 +29,9 @@ async function runProducer() {
           pollingInterval: 1000,
           pollingConfig: {
             symbol: "XAUUSD",
-            period: "M",
+            period: "D",
             pidx: 1,
-            psize: 1,
+            psize: 5,
             withlast: 0,
           },
         },
