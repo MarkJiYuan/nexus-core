@@ -68,7 +68,7 @@ async function runProducer() {
         nodeId: "4",
         type: "StorageNode",
         nodeSetting: {
-          storageType: "database",
+          storageType: "file",
           dbconfig: {
             tableName: "kline_XAUUSD_1M",
           },
