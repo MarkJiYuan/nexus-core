@@ -1,7 +1,11 @@
 ### 如何运行 ###
+```
 cd src/test
 ts-node init.ts
 ts-node sendJsonTest.ts
+```
+ts-node init.ts是初始化中心管理节点和四个注册器
+ts-node sendJsonTest.ts是向中心管理节点发送注册和连接信息
 怕不方便，改成了是向文件中存储，而不是数据库存储 
 
 src/core:
