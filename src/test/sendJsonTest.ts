@@ -3,10 +3,6 @@ import { Kafka } from "kafkajs";
 import { OrganizeMode } from "../types/types";
 import { timeout } from "src/utils/time";
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function runProducer() {
   const kafka = new Kafka({
     clientId: "test-client",
@@ -65,7 +61,7 @@ async function runProducer() {
       // },
       {
         action: "initiate",
-        nodeId: "4",
+        nodeId: "2",
         type: "StorageNode",
         nodeSetting: {
           storageType: "file",
@@ -77,7 +73,7 @@ async function runProducer() {
       {
         action: "connect",
         from: "1",
-        to: "4",
+        to: "2",
         details: [],
       },
       // {

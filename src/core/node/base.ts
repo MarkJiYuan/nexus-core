@@ -1,10 +1,10 @@
-import { Kafka, Producer, Consumer } from "kafkajs";
-import { Topics, Actions, NodeStatus } from "../types/types";
-import { Register } from "./register";
 import Ajv from "ajv";
+import { Consumer, Kafka, Producer } from "kafkajs";
+import { Actions, NodeStatus, Topics } from "../../types/types";
+import { Register } from "../register";
 const ajv = new Ajv();
 
-export class BasicNode {
+export class BaseNode {
   protected nodeId: string;
   protected producer: Producer;
   protected consumer: Consumer;
@@ -23,7 +23,7 @@ export class BasicNode {
         groupId: `group-${this.nodeId}`,
       });
 
-      this.listenTopic = `node_${this.nodeId}`;
+      this.listenTopic = register.listenTopic;
       this.producer = register.producer;
       this.kafka = register.kafka;
       this.messageCount = 0;
@@ -35,33 +35,6 @@ export class BasicNode {
       await this.idConsumer.connect();
       setInterval(() => this.monitorRate(), 30000);
     })();
-  }
-
-  protected startHeartbeat(nodeType: string): void {
-    setInterval(async () => {
-      const message = {
-        nodeId: this.nodeId,
-        nodeType: nodeType,
-        type: Actions.Heartbeat,
-        timestamp: new Date().toISOString(),
-      };
-      await this.producer.send({
-        topic: Topics.heartbeatTopic,
-        messages: [{ value: JSON.stringify(message) }],
-      });
-    }, 30000);
-  }
-
-  protected async sendRegistrationInfo(nodeType: string): Promise<void> {
-    const registrationInfo = {
-      nodeId: this.nodeId,
-      nodeType: nodeType,
-      timestamp: new Date().toISOString(),
-    };
-    await this.producer.send({
-      topic: Topics.registrationTopic,
-      messages: [{ value: JSON.stringify(registrationInfo) }],
-    });
   }
 
   async setProducer(sendTopic: string): Promise<void> {
@@ -98,6 +71,8 @@ export class BasicNode {
     //   console.error('Error in sending message:', error);
     // }
 
+    console.log(`111111111 message to ${this.sendTopic} : ${message}`);
+
     await this.producer.send({
       topic: this.sendTopic,
       messages: [{ value: message }],
@@ -117,15 +92,15 @@ export class BasicNode {
       const status =
         this.messageCount > 0 ? NodeStatus.Working : NodeStatus.Idle;
 
-      const message = {operations:
-        [
+      const message = {
+        operations: [
           {
             action: Actions.UpdateStatus,
             nodeId: this.nodeId,
             status: status,
             timestamp: new Date().toISOString(),
-          }
-        ]
+          },
+        ],
       };
       await this.producer.send({
         topic: Topics.managerTopic,
@@ -161,4 +136,4 @@ export class BasicNode {
   // }
 }
 
-export default BasicNode;
+export default BaseNode;

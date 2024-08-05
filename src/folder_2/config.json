@@ -19,7 +19,7 @@
     {
       "nodeId": "2",
       "nodeType": "StorageNode",
-      "status": "idle",
+      "status": "error",
       "nodeSetting": {
         "storageType": "file",
         "dbconfig": {

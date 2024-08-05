@@ -1,10 +1,10 @@
-import BasicNode from "./node";
+import BaseNode from "./base";
 import { Kafka } from "kafkajs";
-import { Register } from "./register";
-import { OrganizeMode } from "../types/types";
-import { NodeType, Actions } from "../types/types";
+import { Register } from "../register";
+import { OrganizeMode } from "../../types/types";
+import { NodeType, Actions } from "../../types/types";
 
-export default class OrganizationNode extends BasicNode {
+export default class OrganizationNode extends BaseNode {
   private sendTopics: Set<string> = new Set();
   private receiveTopics: Set<string> = new Set();
   private latestData: { [topic: string]: string } = {};
@@ -12,39 +12,36 @@ export default class OrganizationNode extends BasicNode {
 
   constructor(
     register: Register,
-    nodeSetting: { organizeMode: string; interval: number },
   ) {
     super(register);
-    this.organizeMode = nodeSetting.organizeMode;
     this.init().catch((err) => console.error("Initialization error:", err));
-    if (this.organizeMode === OrganizeMode.Periodic) {
-      this.startPeriodicBroadcast(nodeSetting.interval);
-    }
+    // this.organizeMode = nodeSetting.organizeMode;
+    // if (this.organizeMode === OrganizeMode.Periodic) {
+    //   this.startPeriodicBroadcast(nodeSetting.interval);
+    // }
   }
 
   private async init(): Promise<void> {
     await this.producer.connect();
-    await this.sendRegistrationInfo(NodeType.OrganizationNode);
-    this.startHeartbeat(NodeType.OrganizationNode);
 
-    await this.idConsumer.subscribe({
-      topic: this.listenTopic,
-      fromBeginning: true,
-    });
+    // await this.idConsumer.subscribe({
+    //   topic: this.listenTopic,
+    //   fromBeginning: true,
+    // });
 
-    await this.idConsumer.run({
-      eachMessage: async ({ message }) => {
-        const { action, topic: targetTopic } = JSON.parse(
-          message.value.toString(),
-        );
-        console.log(`***Received message: ${action} ${targetTopic}`);
-        if (action === Actions.BecomeProducer) {
-          await this.addSendTopic(targetTopic);
-        } else if (action === Actions.BecomeConsumer) {
-          await this.addReceiveTopic(targetTopic);
-        }
-      },
-    });
+    // await this.idConsumer.run({
+    //   eachMessage: async ({ message }) => {
+    //     const { action, topic: targetTopic } = JSON.parse(
+    //       message.value.toString(),
+    //     );
+    //     console.log(`***Received message: ${action} ${targetTopic}`);
+    //     if (action === Actions.BecomeProducer) {
+    //       await this.addSendTopic(targetTopic);
+    //     } else if (action === Actions.BecomeConsumer) {
+    //       await this.addReceiveTopic(targetTopic);
+    //     }
+    //   },
+    // });
   }
 
   async addSendTopic(topic: string): Promise<void> {
@@ -97,7 +94,7 @@ export default class OrganizationNode extends BasicNode {
     console.log(`Message sent to ${topic}: ${message}`);
   }
 
-  private startPeriodicBroadcast(interval: number): void {
+  public startPeriodicBroadcast(interval: number): void {
     setInterval(() => {
       for (const topic of Object.keys(this.latestData)) {
         this.sendMessageForOrganize(topic, this.latestData[topic]);

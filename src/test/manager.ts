@@ -1,6 +1,5 @@
 import { Kafka, Producer, Partitioners, logLevel } from "kafkajs";
 import NodeManager from "../core/manager";
-import { Register } from "../core/register";
 
 const kafka_config = {
   clientId: "test-client",
@@ -18,10 +17,6 @@ const kafka_config = {
   },
 };
 
-const nodeManager = new NodeManager(kafka_config);
-
-const register1 = new Register(kafka_config,"1");
-const register2 = new Register(kafka_config,"2");
-const register3 = new Register(kafka_config,"3");
-const register4 = new Register(kafka_config,"4");
-
+if (require.main === module) {
+  const nodeManager = new NodeManager(kafka_config);
+}

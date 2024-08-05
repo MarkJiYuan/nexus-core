@@ -4,6 +4,7 @@ export enum Topics {
   registrationTopic = "node-registration",
   heartbeatTopic = "node-heartbeat",
   managerTopic = "node-management",
+  configTopic = "node-config",
 }
 
 export enum Actions {
@@ -69,7 +70,9 @@ export interface NodeInfo {
   nodeSetting?: any; // Node
 }
 
-export interface PipelineDetail {}
+export interface PipelineDetail {
+  topic: string;
+}
 
 export interface PipelineInfo {
   fromNodeId: string;
