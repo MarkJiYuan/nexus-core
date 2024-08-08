@@ -29,6 +29,7 @@ export class Register {
     } else {
       this.nodeId = uuidv4();
     }
+    // TODO: 改成~/.nexus/configs/ 路径里面存储，如果不存在创建文件夹
     this.folderPath = path.resolve(__dirname, `../folder_${this.nodeId}`);
     this.listenTopic = `node_${this.nodeId}`;
     this.producer = this.kafka.producer();
@@ -272,3 +273,4 @@ export class Register {
     return uuidv4();
   }
 }
+
