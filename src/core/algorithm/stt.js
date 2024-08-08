@@ -5,13 +5,13 @@ const log = require("log4node");
 const Server = require("socket.io");
 
 function getWord(io,fileName) {
-  const config = {
-    hostUrl: "wss://rtasr.xfyun.cn/v1/ws",
-    appid: "be0d9960",
-    apiKey: "08b81221ce3092ba30e25f2dd0b90e5e",
-    file: `./${fileName}`,
-    highWaterMark: 1280,
-  };
+  // const config = {
+  //   hostUrl: "wss://rtasr.xfyun.cn/v1/ws",
+  //   appid: "be0d9960",
+  //   apiKey: "08b81221ce3092ba30e25f2dd0b90e5e",
+  //   file: `./${fileName}`,
+  //   highWaterMark: 1280,
+  // };
 
   // 获取当前时间戳
   let ts = parseInt(new Date().getTime() / 1000);
