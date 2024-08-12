@@ -1,8 +1,9 @@
 const openai = require("@volcengine/openapi");
 const Service = openai.Service
-// import { Service } from "@volcengine/openapi";
 
-
+const appKey = 'VxylhBwyDv'
+const accessKeyId = 'AKLTNWU0NWZhZTk2N2NhNGRlMDlmYmE4MzM0ZmU0YTI4MDU'
+const secretKey = 'TXpKa016QXhaVGt6TVRRMk5ERTJNV0pqTnpWbE1EWTNNRFU0TlRjMk5USQ=='
 
 const hostname = 'open.volcengineapi.com'
 const path = "/";
