@@ -12,7 +12,7 @@ const KAFKA_HOST = "localhost:9092"; // 替换为你的Kafka地址
 const logger = createLogger({ logFileName: "opc_collect" });
 
 const nodeIds: string[] = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "node_ids.json"), "utf8"),
+  fs.readFileSync(path.join(__dirname, "selected_node_ids.json"), "utf8"),
 );
 
 async function readMultipleNodes() {
@@ -68,6 +68,7 @@ async function readMultipleNodes() {
 
       // console.log('changing_nodes', Object.keys(changing_nodes).length);
       // logger.info(JSON.stringify(Object.keys(changing_nodes)))
+      console.log('data:', data );
       logger.info(
         `Collect ts: ${now.toISOString()} data count: ${Object.keys(data).length}`,
       );

@@ -3,11 +3,26 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { writeFileSync } from "fs";
-import { getToken } from "./getTtsToken.js";
+import { getToken } from "./getTtsToken";
 import { getWord } from "./stt.js";
+import { Kafka } from "kafkajs";
+import {
+  fetchAllIncidents,
+  fetchSolvedIncidents,
+  updateIncidentReport,
+  insertIncidentReport,
+  fetchToSolveIncidents,
+} from "../../utils/pg/psql";
+
+const KAFKA_HOST = "localhost:9092"; // 替换为你的Kafka地址
+const kafka = new Kafka({ brokers: [KAFKA_HOST] });
+const consumer = kafka.consumer({ groupId: "opc-consumer" });
 
 // 定义允许的来源
-const allowedOrigins = ["https://192.168.50.200:20254", "https://localhost:20254"];
+const allowedOrigins = [
+  "https://192.168.50.200:20254",
+  "https://localhost:20254",
+];
 
 // 创建一个Express应用
 const app = express();
@@ -38,8 +53,63 @@ const io = new Server(server, {
   },
 });
 
+app.use(express.json()); // 用于解析JSON格式的请求体
+
+// 添加GET路由来处理报告请求
+app.get("/api/all-reports", async (req, res) => {
+  console.log("req:", req.complete);
+  try {
+    const reports = await fetchAllIncidents();
+    res.json(reports); // 将报告作为JSON返回
+  } catch (error) {
+    console.error("Failed to fetch reports:", error);
+    res.status(500).send("Unable to fetch reports");
+  }
+});
+app.get("/api/solved-reports", async (req, res) => {
+  console.log("req:", req.complete);
+  try {
+    const reports = await fetchSolvedIncidents();
+    res.json(reports); // 将报告作为JSON返回
+  } catch (error) {
+    console.error("Failed to fetch reports:", error);
+    res.status(500).send("Unable to fetch reports");
+  }
+});
+app.get("/api/tosolve-reports", async (req, res) => {
+  console.log("req:", req.complete);
+  try {
+    const reports = await fetchToSolveIncidents();
+    res.json(reports); // 将报告作为JSON返回
+  } catch (error) {
+    console.error("Failed to fetch reports:", error);
+    res.status(500).send("Unable to fetch reports");
+  }
+});
+
+app.listen(3001, () => {
+  console.log("Server is running on http://localhost:3001");
+});
+
+async function runConsumer() {
+  await consumer.connect();
+  await consumer.subscribe({ topic: "new_incident", fromBeginning: false });
+  await consumer.run({
+    eachMessage: async ({ message }) => {
+      const data = JSON.parse(message.value.toString());
+      io.emit("new_incident", data);
+    },
+  });
+}
+
+runConsumer();
+
 // 当有客户端连接时
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
+  let tokenData = await getToken();
+  let token = tokenData.token;
+  let expiration = tokenData.expires_at * 1000;
+
   console.log("A user connected");
   io.emit("message", "Welcome 250");
 
@@ -49,6 +119,16 @@ io.on("connection", (socket) => {
 
     // 向所有客户端广播消息
     io.emit("message", msg);
+  });
+
+  socket.on("saveToDb", async (data: IncidentReport) => {
+    console.log("save to db:", data);
+    await insertIncidentReport(data);
+  });
+
+  socket.on("afterVerifyScore", async (data: IncidentReport) => {
+    console.log("afterVerifyScore and save to db:", data);
+    await updateIncidentReport(data);
   });
 
   // 监听客户端发送的音频数据
@@ -61,14 +141,14 @@ io.on("connection", (socket) => {
   });
 
   //监听tts信息
-  socket.on("tts", (msg) => {
-    console.log("TTS received: " + msg);
-    generateTTS(msg);
+  socket.on("tts", async (msg) => {
+    const currentTime = new Date().getTime();
+    if (!token || currentTime >= expiration) {
+      token = await getToken(); // Refresh the token
+    }
+    // console.log("TTS received: " + msg);
+    generateTTS(msg, token);
   });
-
-  socket.on("incidentReport", (msg) => {
-    console.log("Incident report received: " + msg);
-  })
 
   // 当客户端断开连接时
   socket.on("disconnect", () => {
@@ -83,19 +163,18 @@ server.listen(PORT, () => {
 });
 
 import axios from "axios";
+import { IncidentReport } from "./event_process";
 
 // API URL and credentials
 const url = "https://sami.bytedance.com/api/v1/invoke";
 const appkey = "VxylhBwyDv";
-let token =
-  "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjMxMTM1OTAsImlhdCI6MTcyMzExMzU4OSwiaXNzIjoiU0FNSSBNZXRhIiwidmVyc2lvbiI6InZvbGMtYXV0aC12MSIsImFjY291bnRfaWQiOjIxMDE5MDcwNDcsImFjY291bnRfbmFtZSI6IjIxMDE5MDcwNDciLCJhcHBfaWQiOjczNjAsImFwcF9uYW1lIjoidHRzIiwiYXBwa2V5IjoiVnh5bGhCd3lEdiIsInNlcnZpY2UiOiJzYW1pIiwic291cmNlIjoiQWNjb3VudCIsInJlZ2lvbiI6ImNuLW5vcnRoLTEifQ.WMxSoTXnWcxOxrTQ8xm2-JdpJj2Dbkapqi93vc9MTq5Vh-IdC15KdFGsYxgQ638z6NDDzFZVQ4QHr3tx8EDJXg";
 
 // TTS configuration constants
 const speaker = "zh_female_qingxin";
 const format = "wav";
 const sampleRate = 24000;
 
-export default function generateTTS(text: string) {
+export default async function generateTTS(text: string, token: string) {
   const audioConfig = {
     format: format,
     sample_rate: sampleRate,
@@ -121,51 +200,32 @@ export default function generateTTS(text: string) {
     },
   };
 
-  axios
-    .post(url, body, config)
-    .then(async (response) => {
-      if (response.data.status_code === 4020002) {
-        console.log("Token expired, getting a new one...");
-        token = await getToken();
-        body.token = token; // Update the body with the new token
-        response = await axios.post(url, body, config); // Retry the request with the new token
-      }
+  async function sendRequest(url, body, config) {
+    try {
+      let response = await axios.post(url, body, config);
+      // Process successful response
       if (response.status === 200) {
         const resultObj = response.data;
         const statusCode = resultObj.status_code;
         if (statusCode === 20000000) {
           const audioBase64 = resultObj.data;
-          console.log("TTS request successful");
           io.emit("tts", audioBase64);
         }
       } else {
         console.log("HTTP Error:", response.status);
         console.log("Response Body:", response.data);
       }
-    })
-    .catch((error) => {
-      console.error("Request failed:", error);
-    });
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        console.log("Unauthorized: Please check your token or credentials.");
+        token = await getToken();
+      } else {
+        console.error("Request failed:", error);
+      }
+    }
+  }
+
+  await sendRequest(url, body, config);
 }
 
-function playAudio(base64String) {
-  const audioContext = new AudioContext();
-  const audioSrc = `data:audio/wav;base64,${base64String}`;
-  fetch(audioSrc)
-    .then((response) => response.arrayBuffer())
-    .then((buffer) => audioContext.decodeAudioData(buffer))
-    .then((decodedAudio) => {
-      const source = audioContext.createBufferSource();
-      source.buffer = decodedAudio;
-      source.connect(audioContext.destination);
-      source.start(0);
-    })
-    .catch((error) => {
-      console.error("Error playing audio:", error);
-    });
-}
-
-// getToken();
-
-// Example usage
-// generateTTS('语音合成服务提供一定量的试用额度A1354，试用额度的用量、可使用范围、有效期等详情以控制台领取页面显示为准。试用额度在额度用尽、试用到期或服务开通为正式版后失效。');
+export { io };

@@ -26,9 +26,9 @@ const KAFKA_HOST = "localhost:9092"; // 替换为你的Kafka地址
 // 特殊值定义，表示没有限制的阈值
 const noLimitValue = 1.1111;
 const kafka = new Kafka({ brokers: [KAFKA_HOST] });
-const consumer = kafka.consumer({ groupId: "opc-consumer" });
+const consumer = kafka.consumer({ groupId: "event-consumer" });
 const producer = kafka.producer();
-const TIME_LIMIT = 30 * 60 * 1000;
+const TIME_LIMIT = 180 * 60 * 1000;
 const sentWarnings: { [key: string]: number } = {};
 
 const event_filter: {
@@ -36,17 +36,19 @@ const event_filter: {
     description: string;
     threshold: { H: number; L: number };
   };
-} = JSON.parse(fs.readFileSync(path.join(__dirname, "event_filter.json"), "utf8"));
+} = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "event_filter.json"), "utf8"),
+);
 
 function generateIncidentReport(description: string) {
-  const errorReport: IncidentReport = {
+  const Report: IncidentReport = {
     description: description,
     incident_id: uuidv4(),
     report_id: uuidv4(),
     incident_ts: Date.now(),
     report_ts: Date.now(),
   };
-  return errorReport;
+  return Report;
 }
 
 async function checkOpcData(Tsdata: {
@@ -62,9 +64,19 @@ async function checkOpcData(Tsdata: {
           // 检测值是否在阈值范围之外
           const value = data[dataKey];
           const threshold = event_filter[nodeId]["threshold"];
-          const description = event_filter[nodeId]["description"];
+          const description = event_filter[nodeId]["description"] + '异常';
           const incidentKey = `${description}:${nodeId}`;
           const currentTime = Date.now();
+
+          // const incident_report: IncidentReport =
+          //   generateIncidentReport(description);
+          // await insertIncidentReport(incident_report);
+          // logger.info(`发送警告: ${description}`);
+
+          // producer.send({
+          //   topic: "new_incident",
+          //   messages: [{ value: JSON.stringify(incident_report) }],
+          // });
 
           let isWarning = false;
 
@@ -128,6 +140,7 @@ async function checkOpcData(Tsdata: {
 
 async function processOpcData() {
   try {
+    await producer.connect();
     await consumer.connect();
     await consumer.subscribe({ topic: "opc_raw", fromBeginning: false });
 

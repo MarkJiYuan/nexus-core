@@ -8,6 +8,16 @@
     "description": "V06301压力",
     "threshold": {"H": 0.34,
     "L": 1.1111}
+  },
+  "PDIAS121205": {
+    "description": "进界区液氨压力",
+    "threshold": {"H": 3,
+    "L": 1.1111}
+  },
+  "060PI_3103": {
+    "description": "V06303压力",
+    "threshold": {"H": 0.42,
+    "L": 1.1111}
   }
 }
 
